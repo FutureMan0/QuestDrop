@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   ShieldAlert,
   Upload,
+  FolderTree,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -91,6 +92,12 @@ export default function SettingsPage() {
   const [xrelSceneReleases, setXrelSceneReleases] = useState(true);
   const [xrelP2pReleases, setXrelP2pReleases] = useState(false);
   const [xrelApiBase, setXrelApiBase] = useState("");
+  const [autoImportEnabled, setAutoImportEnabled] = useState(false);
+  const [autoImportSourcePath, setAutoImportSourcePath] = useState("");
+  const [autoImportLibraryRoot, setAutoImportLibraryRoot] = useState("");
+  const [autoImportRenameEnabled, setAutoImportRenameEnabled] = useState(true);
+  const [isSourceBrowserOpen, setIsSourceBrowserOpen] = useState(false);
+  const [isLibraryBrowserOpen, setIsLibraryBrowserOpen] = useState(false);
 
   // Sync with fetched settings
   useEffect(() => {
@@ -117,6 +124,10 @@ export default function SettingsPage() {
       }
       setXrelSceneReleases(userSettings.xrelSceneReleases ?? true);
       setXrelP2pReleases(userSettings.xrelP2pReleases ?? false);
+      setAutoImportEnabled(userSettings.autoImportEnabled ?? false);
+      setAutoImportSourcePath(userSettings.autoImportSourcePath ?? "");
+      setAutoImportLibraryRoot(userSettings.autoImportLibraryRoot ?? "");
+      setAutoImportRenameEnabled(userSettings.autoImportRenameEnabled ?? true);
     }
     if (config?.xrel) {
       setXrelApiBase(config.xrel.apiBase ?? "");
@@ -404,6 +415,18 @@ export default function SettingsPage() {
     });
   };
 
+  const handleSaveAutoImport = () => {
+    updateSettingsMutation.mutate({
+      updates: {
+        autoImportEnabled,
+        autoImportSourcePath: autoImportSourcePath.trim() || null,
+        autoImportLibraryRoot: autoImportLibraryRoot.trim() || null,
+        autoImportRenameEnabled,
+      },
+      successMessage: "Auto-import settings have been saved.",
+    });
+  };
+
   const saveXrelMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("PATCH", "/api/settings/xrel", {
@@ -470,7 +493,7 @@ export default function SettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="p-8">
+      <div className="p-4 sm:p-8">
         <div className="flex items-center space-x-2">
           <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
           <span>Loading configuration...</span>
@@ -481,7 +504,7 @@ export default function SettingsPage() {
 
   if (error) {
     return (
-      <div className="p-8">
+      <div className="p-4 sm:p-8">
         <Card>
           <CardHeader>
             <CardTitle>Error Loading Configuration</CardTitle>
@@ -493,16 +516,18 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="h-full overflow-auto p-8">
-      <div className="flex items-center mb-8">
-        <SettingsIcon className="h-8 w-8 mr-3" />
-        <div>
-          <h1 className="text-3xl font-bold">Settings</h1>
-          <p className="text-muted-foreground">Configure your preferences and system settings</p>
+    <div className="h-full overflow-auto overflow-x-hidden p-3 pb-6 sm:p-6 lg:p-8">
+      <div className="mb-6 flex flex-col gap-3 sm:mb-8 sm:flex-row sm:items-center">
+        <SettingsIcon className="h-8 w-8 shrink-0 sm:mr-3" />
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold sm:text-3xl">Settings</h1>
+          <p className="text-sm text-muted-foreground sm:text-base">
+            Configure your preferences and system settings
+          </p>
         </div>
       </div>
 
-      <div className="max-w-4xl space-y-6">
+      <div className="max-w-4xl w-full min-w-0 space-y-6">
         {/* Database Migration Alert */}
         {settingsError && (
           <Alert variant="destructive">
@@ -517,13 +542,28 @@ export default function SettingsPage() {
         )}
 
         <Tabs defaultValue="general" className="w-full">
-          <TabsList className="grid w-full grid-cols-6 mb-8">
-            <TabsTrigger value="general">General</TabsTrigger>
-            <TabsTrigger value="rules">Rules</TabsTrigger>
-            <TabsTrigger value="services">Services</TabsTrigger>
-            <TabsTrigger value="account">Account</TabsTrigger>
-            <TabsTrigger value="security">Security</TabsTrigger>
-            <TabsTrigger value="system">System</TabsTrigger>
+          <TabsList className="mb-6 grid h-auto w-full grid-cols-2 gap-1 rounded-lg bg-muted p-1 sm:mb-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7">
+            <TabsTrigger value="general" className="text-xs sm:text-sm">
+              General
+            </TabsTrigger>
+            <TabsTrigger value="folders" className="text-xs sm:text-sm">
+              Folders
+            </TabsTrigger>
+            <TabsTrigger value="rules" className="text-xs sm:text-sm">
+              Rules
+            </TabsTrigger>
+            <TabsTrigger value="services" className="text-xs sm:text-sm">
+              Services
+            </TabsTrigger>
+            <TabsTrigger value="account" className="text-xs sm:text-sm">
+              Account
+            </TabsTrigger>
+            <TabsTrigger value="security" className="text-xs sm:text-sm">
+              Security
+            </TabsTrigger>
+            <TabsTrigger value="system" className="col-span-2 sm:col-span-1 text-xs sm:text-sm">
+              System
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="general" className="space-y-6">
@@ -541,7 +581,7 @@ export default function SettingsPage() {
               <CardContent className="space-y-6">
                 <div className="space-y-4">
                   {/* Auto Search Toggle */}
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="space-y-0.5">
                       <Label htmlFor="auto-search" className="text-sm font-medium">
                         Enable Auto-Search
@@ -570,7 +610,7 @@ export default function SettingsPage() {
                         max="168"
                         value={searchIntervalHours}
                         onChange={(e) => setSearchIntervalHours(parseInt(e.target.value) || 6)}
-                        className="w-32"
+                        className="w-full max-w-[8rem] sm:w-32"
                       />
                       <p className="text-xs text-muted-foreground">
                         How often to search for new releases (1-168 hours)
@@ -580,7 +620,7 @@ export default function SettingsPage() {
 
                   {/* Auto Download Toggle */}
                   {autoSearchEnabled && (
-                    <div className="flex items-center justify-between pl-4 border-l-2">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pl-4 border-l-2">
                       <div className="space-y-0.5">
                         <Label htmlFor="auto-download" className="text-sm font-medium">
                           Auto-Download Single Releases
@@ -599,7 +639,7 @@ export default function SettingsPage() {
 
                   {/* Notify Multiple Downloads */}
                   {autoSearchEnabled && (
-                    <div className="flex items-center justify-between pl-4 border-l-2">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pl-4 border-l-2">
                       <div className="space-y-0.5">
                         <Label htmlFor="notify-multiple" className="text-sm font-medium">
                           Notify on Multiple Releases
@@ -618,7 +658,7 @@ export default function SettingsPage() {
 
                   {/* Notify Updates */}
                   {autoSearchEnabled && (
-                    <div className="flex items-center justify-between pl-4 border-l-2">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pl-4 border-l-2">
                       <div className="space-y-0.5">
                         <Label htmlFor="notify-updates" className="text-sm font-medium">
                           Notify on Game Updates
@@ -636,11 +676,11 @@ export default function SettingsPage() {
                   )}
                 </div>
 
-                <div className="flex justify-end pt-4 border-t">
+                <div className="flex flex-col gap-2 pt-4 border-t sm:flex-row sm:justify-end">
                   <Button
                     onClick={handleSaveAutoSearch}
                     disabled={updateSettingsMutation.isPending}
-                    className="gap-2"
+                    className="h-11 w-full touch-manipulation gap-2 sm:h-10 sm:w-auto"
                   >
                     {updateSettingsMutation.isPending ? (
                       <>
@@ -667,13 +707,141 @@ export default function SettingsPage() {
             />
           </TabsContent>
 
+          <TabsContent value="folders" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center space-x-3">
+                  <FolderTree className="h-5 w-5 text-muted-foreground" />
+                  <CardTitle className="text-lg">Game Auto-Import</CardTitle>
+                </div>
+                <CardDescription>
+                  After a download completes, Questarr can import matching files from a source
+                  folder into your game library structure:{" "}
+                  <code>{`<LibraryRoot>/<Console>/<GameTitle>/`}</code>
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="auto-import-enabled" className="text-sm font-medium">
+                      Enable Auto-Import
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Automatically move and organize completed downloads
+                    </p>
+                  </div>
+                  <Switch
+                    id="auto-import-enabled"
+                    checked={autoImportEnabled}
+                    onCheckedChange={setAutoImportEnabled}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="auto-import-source">Source Folder (completed downloads)</Label>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <Input
+                      id="auto-import-source"
+                      value={autoImportSourcePath}
+                      onChange={(e) => setAutoImportSourcePath(e.target.value)}
+                      placeholder="/downloads/complete"
+                      className="min-w-0"
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsSourceBrowserOpen(true)}
+                      className="h-10 w-full shrink-0 touch-manipulation sm:h-9 sm:w-auto"
+                    >
+                      Browse
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Folder where your downloader stores finished games
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="auto-import-library-root">Library Root (organized games)</Label>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <Input
+                      id="auto-import-library-root"
+                      value={autoImportLibraryRoot}
+                      onChange={(e) => setAutoImportLibraryRoot(e.target.value)}
+                      placeholder="/games/library"
+                      className="min-w-0"
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsLibraryBrowserOpen(true)}
+                      className="h-10 w-full shrink-0 touch-manipulation sm:h-9 sm:w-auto"
+                    >
+                      Browse
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Target root for organized games</p>
+                </div>
+
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="auto-import-rename" className="text-sm font-medium">
+                      Rename during import
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Normalize imported folder names to the game title
+                    </p>
+                  </div>
+                  <Switch
+                    id="auto-import-rename"
+                    checked={autoImportRenameEnabled}
+                    onCheckedChange={setAutoImportRenameEnabled}
+                  />
+                </div>
+
+                <PathBrowser
+                  isOpen={isSourceBrowserOpen}
+                  onClose={() => setIsSourceBrowserOpen(false)}
+                  onSelect={setAutoImportSourcePath}
+                  initialPath={autoImportSourcePath}
+                  title="Select source folder"
+                  selectDirectories
+                />
+
+                <PathBrowser
+                  isOpen={isLibraryBrowserOpen}
+                  onClose={() => setIsLibraryBrowserOpen(false)}
+                  onSelect={setAutoImportLibraryRoot}
+                  initialPath={autoImportLibraryRoot}
+                  title="Select library root folder"
+                  selectDirectories
+                />
+
+                <div className="flex flex-col gap-2 pt-4 border-t sm:flex-row sm:justify-end">
+                  <Button
+                    onClick={handleSaveAutoImport}
+                    disabled={updateSettingsMutation.isPending}
+                    className="h-11 w-full touch-manipulation gap-2 sm:h-10 sm:w-auto"
+                  >
+                    {updateSettingsMutation.isPending ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>Save Auto-Import</>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="services" className="space-y-6">
             {/* IGDB Card */}
             <Card id="igdb-config">
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <Key className="h-5 w-5 text-muted-foreground" />
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <Key className="h-5 w-5 shrink-0 text-muted-foreground" />
                     <CardTitle className="text-lg">IGDB API</CardTitle>
                     <Popover>
                       <PopoverTrigger asChild>
@@ -719,7 +887,7 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex flex-col space-y-2 pb-4 border-b">
-                  <div className="flex justify-between items-center">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <span className="text-sm font-medium">Status</span>
                     {config?.igdb.configured ? (
                       <Badge variant={config.igdb.source === "database" ? "default" : "secondary"}>
@@ -783,11 +951,11 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-4 border-t">
+                <div className="flex flex-col gap-2 pt-4 border-t sm:flex-row sm:justify-end">
                   <Button
                     onClick={handleSaveIgdb}
                     disabled={updateIgdbMutation.isPending}
-                    className="gap-2"
+                    className="h-11 w-full touch-manipulation gap-2 sm:h-10 sm:w-auto"
                   >
                     {updateIgdbMutation.isPending ? (
                       <>
@@ -808,20 +976,20 @@ export default function SettingsPage() {
             {/* ScreenScraper Card */}
             <Card id="screenscraper-config">
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <Key className="h-5 w-5 text-muted-foreground" />
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <Key className="h-5 w-5 shrink-0 text-muted-foreground" />
                     <CardTitle className="text-lg">ScreenScraper API</CardTitle>
                   </div>
                 </div>
                 <CardDescription>
-                  Retro-first metadata provider with strong cover-art support (2D/3D boxes, cartridge/CD
-                  art, screenshots).
+                  Retro-first metadata provider with strong cover-art support (2D/3D boxes,
+                  cartridge/CD art, screenshots).
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex flex-col space-y-2 pb-4 border-b">
-                  <div className="flex justify-between items-center">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <span className="text-sm font-medium">Status</span>
                     {config?.metadataProviders?.screenscraper?.configured ? (
                       <Badge
@@ -841,8 +1009,8 @@ export default function SettingsPage() {
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Stored username/password override environment variables (
-                    <code>SCREENSCRAPER_USER</code>, <code>SCREENSCRAPER_PASSWORD</code>). For requests,
-                    server-side developer credentials are still required in env (
+                    <code>SCREENSCRAPER_USER</code>, <code>SCREENSCRAPER_PASSWORD</code>). For
+                    requests, server-side developer credentials are still required in env (
                     <code>SCREENSCRAPER_DEV_ID</code>, <code>SCREENSCRAPER_DEV_PASSWORD</code>).
                   </p>
                 </div>
@@ -897,11 +1065,11 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-4 border-t">
+                <div className="flex flex-col gap-2 pt-4 border-t sm:flex-row sm:justify-end">
                   <Button
                     onClick={handleSaveScreenScraper}
                     disabled={updateScreenScraperMutation.isPending}
-                    className="gap-2"
+                    className="h-11 w-full touch-manipulation gap-2 sm:h-10 sm:w-auto"
                   >
                     {updateScreenScraperMutation.isPending ? (
                       <>
@@ -954,7 +1122,7 @@ export default function SettingsPage() {
                       Use the mirror if your IP is blocked by Cloudflare on the official API.
                     </p>
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="space-y-0.5">
                       <Label htmlFor="xrel-scene" className="text-sm font-medium">
                         Include scene releases
@@ -969,7 +1137,7 @@ export default function SettingsPage() {
                       onCheckedChange={setXrelSceneReleases}
                     />
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="space-y-0.5">
                       <Label htmlFor="xrel-p2p" className="text-sm font-medium">
                         Include P2P releases
@@ -985,11 +1153,11 @@ export default function SettingsPage() {
                     />
                   </div>
                 </div>
-                <div className="flex justify-end pt-4 border-t">
+                <div className="flex flex-col gap-2 pt-4 border-t sm:flex-row sm:justify-end">
                   <Button
                     onClick={handleSaveXrel}
                     disabled={saveXrelMutation.isPending}
-                    className="gap-2"
+                    className="h-11 w-full touch-manipulation gap-2 sm:h-10 sm:w-auto"
                   >
                     {saveXrelMutation.isPending ? (
                       <>
@@ -1031,7 +1199,7 @@ export default function SettingsPage() {
                       max="4"
                       value={igdbRateLimitPerSecond}
                       onChange={(e) => setIgdbRateLimitPerSecond(parseInt(e.target.value) || 3)}
-                      className="w-32"
+                      className="w-full max-w-[8rem] sm:w-32"
                     />
                     <div className="text-xs text-muted-foreground space-y-1">
                       <p>
@@ -1049,11 +1217,11 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-4 border-t">
+                <div className="flex flex-col gap-2 pt-4 border-t sm:flex-row sm:justify-end">
                   <Button
                     onClick={handleSaveAdvanced}
                     disabled={updateSettingsMutation.isPending}
-                    className="gap-2"
+                    className="h-11 w-full touch-manipulation gap-2 sm:h-10 sm:w-auto"
                   >
                     {updateSettingsMutation.isPending ? (
                       <>
@@ -1088,8 +1256,8 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex flex-col space-y-2">
-                  <div className="flex justify-between items-center">
-                    <div>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
                       <p className="text-sm font-medium">Refresh Metadata</p>
                       <p className="text-xs text-muted-foreground">
                         Update all games in your library with the latest information from IGDB.
@@ -1100,7 +1268,7 @@ export default function SettingsPage() {
                       size="sm"
                       onClick={() => refreshMetadataMutation.mutate()}
                       disabled={refreshMetadataMutation.isPending}
-                      className="gap-2"
+                      className="h-10 w-full shrink-0 gap-2 touch-manipulation sm:h-9 sm:w-auto"
                     >
                       {refreshMetadataMutation.isPending ? (
                         <RefreshCw className="h-4 w-4 animate-spin" />
@@ -1129,7 +1297,7 @@ export default function SettingsPage() {
               <CardContent className="space-y-6">
                 {sslSettings && (
                   <>
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="space-y-0.5">
                         <Label htmlFor="ssl-enabled" className="text-sm font-medium">
                           Enable SSL
@@ -1152,7 +1320,7 @@ export default function SettingsPage() {
                             type="number"
                             value={sslPort}
                             disabled
-                            className="w-32 bg-muted"
+                            className="w-full max-w-[8rem] bg-muted sm:w-32"
                           />
                           <p className="text-xs text-muted-foreground">
                             Configured via SSL_PORT environment variable (e.g., in
@@ -1162,14 +1330,19 @@ export default function SettingsPage() {
 
                         <div className="space-y-2">
                           <Label htmlFor="cert-path">Certificate Path (.crt/.pem)</Label>
-                          <div className="flex gap-2">
+                          <div className="flex flex-col gap-2 sm:flex-row">
                             <Input
                               id="cert-path"
                               value={sslCertPath}
                               onChange={(e) => setSslCertPath(e.target.value)}
                               placeholder="/path/to/server.crt"
+                              className="min-w-0"
                             />
-                            <Button variant="outline" onClick={() => setIsCertBrowserOpen(true)}>
+                            <Button
+                              variant="outline"
+                              onClick={() => setIsCertBrowserOpen(true)}
+                              className="h-10 w-full shrink-0 touch-manipulation sm:h-9 sm:w-auto"
+                            >
                               Browse
                             </Button>
                           </div>
@@ -1185,14 +1358,19 @@ export default function SettingsPage() {
 
                         <div className="space-y-2">
                           <Label htmlFor="key-path">Private Key Path (.key)</Label>
-                          <div className="flex gap-2">
+                          <div className="flex flex-col gap-2 sm:flex-row">
                             <Input
                               id="key-path"
                               value={sslKeyPath}
                               onChange={(e) => setSslKeyPath(e.target.value)}
                               placeholder="/path/to/server.key"
+                              className="min-w-0"
                             />
-                            <Button variant="outline" onClick={() => setIsKeyBrowserOpen(true)}>
+                            <Button
+                              variant="outline"
+                              onClick={() => setIsKeyBrowserOpen(true)}
+                              className="h-10 w-full shrink-0 touch-manipulation sm:h-9 sm:w-auto"
+                            >
                               Browse
                             </Button>
                           </div>
@@ -1207,7 +1385,7 @@ export default function SettingsPage() {
                         </div>
 
                         <div className="space-y-4">
-                          <div className="flex items-center justify-between">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div className="space-y-0.5">
                               <Label htmlFor="ssl-redirect">Force HTTPS</Label>
                               <p className="text-xs text-muted-foreground">
@@ -1252,25 +1430,25 @@ export default function SettingsPage() {
                                 </span>
                               </div>
 
-                              <div className="grid gap-1 text-sm text-muted-foreground">
-                                <div className="flex justify-between">
-                                  <span>Issued To:</span>
-                                  <span className="font-mono text-xs">
+                              <div className="grid gap-2 text-sm text-muted-foreground">
+                                <div className="flex flex-col gap-0.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                                  <span className="shrink-0">Issued To:</span>
+                                  <span className="break-all font-mono text-xs sm:text-right">
                                     {certInfo.subject ? certInfo.subject.split(",")[0] : "Unknown"}
                                   </span>
                                 </div>
-                                <div className="flex justify-between">
-                                  <span>Issued By:</span>
-                                  <span className="font-mono text-xs">
+                                <div className="flex flex-col gap-0.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                                  <span className="shrink-0">Issued By:</span>
+                                  <span className="break-all font-mono text-xs sm:text-right">
                                     {certInfo.issuer ? certInfo.issuer.split(",")[0] : "Unknown"}
                                   </span>
                                 </div>
-                                <div className="flex justify-between items-center">
+                                <div className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                                   <div className="flex items-center gap-1">
                                     <Calendar className="h-3 w-3" />
                                     <span>Valid Until:</span>
                                   </div>
-                                  <span>
+                                  <span className="sm:text-right">
                                     {certInfo.validTo
                                       ? new Date(certInfo.validTo).toLocaleDateString()
                                       : "Unknown"}
@@ -1392,8 +1570,12 @@ export default function SettingsPage() {
                       </>
                     )}
 
-                    <div className="flex justify-end pt-4 border-t">
-                      <Button onClick={handleSaveSsl} disabled={updateSslMutation.isPending}>
+                    <div className="flex flex-col gap-2 pt-4 border-t sm:flex-row sm:justify-end">
+                      <Button
+                        onClick={handleSaveSsl}
+                        disabled={updateSslMutation.isPending}
+                        className="h-11 w-full touch-manipulation sm:h-10 sm:w-auto"
+                      >
                         {updateSslMutation.isPending ? "Saving..." : "Save SSL Settings"}
                       </Button>
                     </div>

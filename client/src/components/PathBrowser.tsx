@@ -32,6 +32,7 @@ interface PathBrowserProps {
   initialPath?: string;
   title?: string;
   extensions?: string[]; // Optional filter for file extensions
+  selectDirectories?: boolean;
 }
 
 export function PathBrowser({
@@ -41,6 +42,7 @@ export function PathBrowser({
   initialPath,
   title = "Select File",
   extensions,
+  selectDirectories = false,
 }: PathBrowserProps) {
   const [currentPath, setCurrentPath] = useState("/");
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
@@ -93,6 +95,10 @@ export function PathBrowser({
 
   const handleSelect = (path: string, isDirectory: boolean) => {
     if (isDirectory) {
+      if (selectDirectories) {
+        setSelectedPath(path);
+        return;
+      }
       handleNavigate(path);
     } else {
       setSelectedPath(path);
@@ -206,6 +212,18 @@ export function PathBrowser({
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
+              {selectDirectories && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    onSelect(currentPath);
+                    onClose();
+                  }}
+                >
+                  Use Current Folder
+                </Button>
+              )}
               <Button type="button" onClick={handleConfirm} disabled={!selectedPath}>
                 Select
               </Button>

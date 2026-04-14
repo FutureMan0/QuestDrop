@@ -200,10 +200,18 @@ describe("Downloader Duplicates Handling", () => {
       error: "Duplicate NZB",
     };
 
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      json: async () => duplicateResponse,
-    });
+    const minimalNzbXml =
+      '<?xml version="1.0" encoding="utf-8"?><nzb xmlns="http://www.newzbin.com/DTD/2003/nzb"></nzb>';
+
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        arrayBuffer: async () => new TextEncoder().encode(minimalNzbXml).buffer,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => duplicateResponse,
+      });
 
     const result = await DownloaderManager.addDownload(sabnzbd, {
       url: "http://example.com/file.nzb",
@@ -244,10 +252,18 @@ describe("Downloader Duplicates Handling", () => {
       nzo_ids: [],
     };
 
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      json: async () => mergedResponse,
-    });
+    const minimalNzbXml =
+      '<?xml version="1.0" encoding="utf-8"?><nzb xmlns="http://www.newzbin.com/DTD/2003/nzb"></nzb>';
+
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        arrayBuffer: async () => new TextEncoder().encode(minimalNzbXml).buffer,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mergedResponse,
+      });
 
     const result = await DownloaderManager.addDownload(sabnzbd, {
       url: "http://example.com/file.nzb",

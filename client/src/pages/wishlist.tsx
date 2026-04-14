@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import GameGrid from "@/components/GameGrid";
 import { type Game } from "@shared/schema";
-import { type GameStatus } from "@/components/StatusBadge";
 import { useToast } from "@/hooks/use-toast";
 import {
   Select,
@@ -135,27 +134,25 @@ export default function WishlistPage() {
     return sortGames(tbaGames, sortBy);
   }, [tbaGames, sortBy]);
 
-  const statusMutation = useMutation({
-    mutationFn: async ({ gameId, status }: { gameId: string; status: GameStatus }) => {
+  const removeRequestMutation = useMutation({
+    mutationFn: async (gameId: string) => {
       const token = localStorage.getItem("token");
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      const headers: Record<string, string> = {};
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
       }
-      const response = await fetch(`/api/games/${gameId}/status`, {
-        method: "PATCH",
+      const response = await fetch(`/api/games/${gameId}`, {
+        method: "DELETE",
         headers,
-        body: JSON.stringify({ status }),
       });
-      if (!response.ok) throw new Error("Failed to update status");
-      return response.json();
+      if (!response.ok) throw new Error("Failed to remove request");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/games"] });
-      toast({ description: "Game status updated successfully" });
+      toast({ description: "Request removed successfully" });
     },
     onError: () => {
-      toast({ description: "Failed to update game status", variant: "destructive" });
+      toast({ description: "Failed to remove request", variant: "destructive" });
     },
   });
 
@@ -163,79 +160,79 @@ export default function WishlistPage() {
     <div className="h-full overflow-auto p-6">
       <div className="sticky top-0 z-30 -mx-2 mb-6 rounded-xl px-2 py-2 backdrop-blur-md">
         <div className="glass-surface rounded-xl px-4 py-3 md:px-5">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold">Wishlist</h1>
-            <p className="text-muted-foreground">Games you want to play</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              {viewMode === "list" && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-8 gap-1">
-                      <Settings2 className="h-3.5 w-3.5" />
-                      <span className="sr-only sm:not-sr-only sm:inline-block">
-                        {listDensity === "comfortable"
-                          ? "Comfortable"
-                          : listDensity === "compact"
-                            ? "Compact"
-                            : "Ultra-compact"}
-                      </span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Row Density</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => setListDensity("comfortable")}>
-                      Comfortable
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setListDensity("compact")}>
-                      Compact
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setListDensity("ultra-compact")}>
-                      Ultra-compact
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-              <ToggleGroup
-                type="single"
-                value={viewMode}
-                onValueChange={(value) => value && setViewMode(value as "grid" | "list")}
-              >
-                <ToggleGroupItem value="grid" aria-label="Grid View">
-                  <LayoutGrid className="h-4 w-4" />
-                </ToggleGroupItem>
-                <ToggleGroupItem value="list" aria-label="List View">
-                  <List className="h-4 w-4" />
-                </ToggleGroupItem>
-              </ToggleGroup>
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold">Request</h1>
+              <p className="text-muted-foreground">Games you requested</p>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground hidden sm:inline">Sort by:</span>
-              <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="release-desc">Release Date (Newest)</SelectItem>
-                  <SelectItem value="release-asc">Release Date (Oldest)</SelectItem>
-                  <SelectItem value="added-desc">Recently Added</SelectItem>
-                  <SelectItem value="title-asc">Title (A-Z)</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                {viewMode === "list" && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-8 gap-1">
+                        <Settings2 className="h-3.5 w-3.5" />
+                        <span className="sr-only sm:not-sr-only sm:inline-block">
+                          {listDensity === "comfortable"
+                            ? "Comfortable"
+                            : listDensity === "compact"
+                              ? "Compact"
+                              : "Ultra-compact"}
+                        </span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Row Density</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setListDensity("comfortable")}>
+                        Comfortable
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setListDensity("compact")}>
+                        Compact
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setListDensity("ultra-compact")}>
+                        Ultra-compact
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+                <ToggleGroup
+                  type="single"
+                  value={viewMode}
+                  onValueChange={(value) => value && setViewMode(value as "grid" | "list")}
+                >
+                  <ToggleGroupItem value="grid" aria-label="Grid View">
+                    <LayoutGrid className="h-4 w-4" />
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="list" aria-label="List View">
+                    <List className="h-4 w-4" />
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground hidden sm:inline">Sort by:</span>
+                <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="release-desc">Release Date (Newest)</SelectItem>
+                    <SelectItem value="release-asc">Release Date (Oldest)</SelectItem>
+                    <SelectItem value="added-desc">Recently Added</SelectItem>
+                    <SelectItem value="title-asc">Title (A-Z)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
-        </div>
         </div>
       </div>
 
       {wishlistGames.length === 0 && !isLoading ? (
         <EmptyState
           icon={Star}
-          title="Your wishlist is empty"
-          description="Keep track of games you want to play. Add them from the Discover page to get notified about releases and updates."
+          title="Your request list is empty"
+          description="Request games from Discover and manage them here."
           actionLabel="Find Games"
           actionLink="/discover"
         />
@@ -250,7 +247,8 @@ export default function WishlistPage() {
               </div>
               <GameGrid
                 games={sortedUpcomingGames}
-                onStatusChange={(id, status) => statusMutation.mutate({ gameId: id, status })}
+                isRequestView
+                onRemoveRequest={(gameId) => removeRequestMutation.mutate(gameId)}
                 isLoading={isLoading}
                 viewMode={viewMode}
                 density={listDensity}
@@ -270,7 +268,8 @@ export default function WishlistPage() {
               </div>
               <GameGrid
                 games={sortedReleasedGames}
-                onStatusChange={(id, status) => statusMutation.mutate({ gameId: id, status })}
+                isRequestView
+                onRemoveRequest={(gameId) => removeRequestMutation.mutate(gameId)}
                 isLoading={isLoading}
                 viewMode={viewMode}
                 density={listDensity}
@@ -288,7 +287,8 @@ export default function WishlistPage() {
               </div>
               <GameGrid
                 games={sortedTbaGames}
-                onStatusChange={(id, status) => statusMutation.mutate({ gameId: id, status })}
+                isRequestView
+                onRemoveRequest={(gameId) => removeRequestMutation.mutate(gameId)}
                 isLoading={isLoading}
                 viewMode={viewMode}
                 density={listDensity}

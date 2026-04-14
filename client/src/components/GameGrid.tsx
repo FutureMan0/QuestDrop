@@ -11,7 +11,10 @@ interface GameGridProps {
   onViewDetails?: (gameId: string) => void;
   onTrackGame?: (game: Game) => void;
   onToggleHidden?: (gameId: string, hidden: boolean) => void;
+  onRequestSearch?: (gameId: string) => void;
+  onRemoveRequest?: (gameId: string) => void;
   isDiscovery?: boolean;
+  isRequestView?: boolean;
   isLoading?: boolean;
   isFetching?: boolean;
   columns?: number;
@@ -25,7 +28,10 @@ export default function GameGrid({
   onViewDetails,
   onTrackGame,
   onToggleHidden,
+  onRequestSearch,
+  onRemoveRequest,
   isDiscovery = false,
+  isRequestView = false,
   isLoading = false,
   isFetching = false,
   columns = 5,
@@ -113,7 +119,10 @@ export default function GameGrid({
             onStatusChange={onStatusChange}
             onViewDetails={onViewDetails}
             onToggleHidden={onToggleHidden}
+            onRequestSearch={onRequestSearch}
+            onRemoveRequest={onRemoveRequest}
             isDiscovery={cardIsDiscovery}
+            isRequestView={isRequestView}
             density={density}
           />
         ) : (
@@ -124,7 +133,10 @@ export default function GameGrid({
             onViewDetails={onViewDetails}
             onTrackGame={onTrackGame}
             onToggleHidden={onToggleHidden}
+            onRequestSearch={onRequestSearch}
+            onRemoveRequest={onRemoveRequest}
             isDiscovery={cardIsDiscovery}
+            isRequestView={isRequestView}
           />
         );
       })}

@@ -25,6 +25,7 @@ interface GameCarouselSectionProps {
   onTrackGame?: (game: Game) => void;
   onToggleHidden?: (gameId: string, hidden: boolean) => void;
   isDiscovery?: boolean;
+  loop?: boolean;
 }
 
 // ⚡ Bolt: Using React.memo to prevent this component from re-rendering if its props
@@ -39,6 +40,7 @@ const GameCarouselSection = ({
   onTrackGame,
   onToggleHidden,
   isDiscovery = true,
+  loop = false,
 }: GameCarouselSectionProps) => {
   const [api, setApi] = useState<CarouselApi>();
   const [canScrollPrev, setCanScrollPrev] = useState(false);
@@ -208,7 +210,7 @@ const GameCarouselSection = ({
         <Carousel
           opts={{
             align: "start",
-            loop: false,
+            loop,
           }}
           setApi={setApi}
           className={cn("w-full max-w-full transition-opacity", {
@@ -216,12 +218,9 @@ const GameCarouselSection = ({
           })}
           aria-hidden={isFetching && !isLoading}
         >
-          <CarouselContent className="-ml-4 max-w-full items-stretch">
+          <CarouselContent className="-ml-1.5 max-w-full items-stretch">
             {games.map((game) => (
-              <CarouselItem
-                key={game.id}
-                className="pl-4 h-full basis-[78%] sm:basis-[48%] md:basis-[36%] lg:basis-[28%] xl:basis-[22%] 2xl:basis-[18%]"
-              >
+              <CarouselItem key={game.id} className="pl-1.5 h-full basis-[204px]">
                 <GameCard
                   game={game}
                   onStatusChange={onStatusChange}

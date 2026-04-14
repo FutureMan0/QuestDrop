@@ -289,7 +289,7 @@ export default function Downloads() {
 
   if (isLoading) {
     return (
-      <div className="p-8">
+      <div className="p-4 sm:p-8">
         <div className="flex items-center space-x-2" data-testid="loading-downloads">
           <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
           <span data-testid="text-loading-downloads">Loading downloads...</span>
@@ -299,69 +299,117 @@ export default function Downloads() {
   }
 
   return (
-    <div className="h-full overflow-auto p-8">
-      <div className="sticky top-0 z-30 -mx-2 mb-6 rounded-xl px-2 py-2 backdrop-blur-md">
-        <div className="glass-surface rounded-xl px-4 py-4 md:px-5">
-          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h1 className="text-3xl font-bold">Downloads</h1>
-              <p className="text-muted-foreground">Monitor and manage active downloads</p>
+    <div className="h-full overflow-auto overflow-x-hidden p-3 pb-6 sm:p-6 lg:p-8">
+      <div className="sticky top-0 z-30 -mx-1 mb-4 rounded-xl px-1 py-2 backdrop-blur-md sm:-mx-2 sm:mb-6 sm:px-2">
+        <div className="glass-surface rounded-xl px-3 py-3 sm:px-4 sm:py-4 md:px-5">
+          <div className="mb-4 flex flex-col gap-3 sm:mb-5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold sm:text-3xl">Downloads</h1>
+              <p className="text-sm text-muted-foreground sm:text-base">
+                Monitor and manage active downloads
+              </p>
             </div>
-            <Button variant="outline" onClick={() => refetch()} data-testid="button-refresh">
+            <Button
+              variant="outline"
+              onClick={() => refetch()}
+              data-testid="button-refresh"
+              className="h-11 w-full touch-manipulation sm:h-10 sm:w-auto"
+            >
               <RefreshCw className="mr-2 h-4 w-4" />
               Refresh
             </Button>
           </div>
 
           {/* Status filter tabs */}
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-center gap-4">
-              <span className="text-sm font-medium text-muted-foreground">Status:</span>
-              <Tabs
-                value={statusFilter}
-                onValueChange={(value) => setStatusFilter(value as DownloadStatusType | "all")}
-                aria-label="Filter downloads by status"
-              >
-                <TabsList data-testid="filter-tabs" className="border border-white/10 bg-slate-900/70">
-                  <TabsTrigger value="all" data-testid="filter-all">
-                    All
-                  </TabsTrigger>
-                  <TabsTrigger value="downloading" data-testid="filter-downloading">
-                    Downloading
-                  </TabsTrigger>
-                  <TabsTrigger value="seeding" data-testid="filter-seeding">
-                    Seeding
-                  </TabsTrigger>
-                  <TabsTrigger value="completed" data-testid="filter-completed">
-                    Completed
-                  </TabsTrigger>
-                  <TabsTrigger value="paused" data-testid="filter-paused">
-                    Paused
-                  </TabsTrigger>
-                  <TabsTrigger value="error" data-testid="filter-error">
-                    Error
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
+          <div className="flex flex-col gap-3 sm:gap-4">
+            <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+              <span className="shrink-0 text-sm font-medium text-muted-foreground">Status:</span>
+              <div className="min-w-0 flex-1 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] sm:overflow-visible sm:pb-0">
+                <Tabs
+                  value={statusFilter}
+                  onValueChange={(value) => setStatusFilter(value as DownloadStatusType | "all")}
+                  aria-label="Filter downloads by status"
+                  className="w-max min-w-full sm:w-full"
+                >
+                  <TabsList
+                    data-testid="filter-tabs"
+                    className="inline-flex h-auto min-h-10 w-max max-w-none flex-nowrap justify-start gap-0.5 border border-border bg-muted/60 p-1 sm:flex-wrap sm:justify-center dark:border-white/10 dark:bg-slate-900/70"
+                  >
+                    <TabsTrigger
+                      value="all"
+                      data-testid="filter-all"
+                      className="shrink-0 px-2.5 py-2 text-xs sm:px-3 sm:py-1.5 sm:text-sm"
+                    >
+                      All
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="downloading"
+                      data-testid="filter-downloading"
+                      className="shrink-0 px-2.5 py-2 text-xs sm:px-3 sm:py-1.5 sm:text-sm"
+                    >
+                      Downloading
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="seeding"
+                      data-testid="filter-seeding"
+                      className="shrink-0 px-2.5 py-2 text-xs sm:px-3 sm:py-1.5 sm:text-sm"
+                    >
+                      Seeding
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="completed"
+                      data-testid="filter-completed"
+                      className="shrink-0 px-2.5 py-2 text-xs sm:px-3 sm:py-1.5 sm:text-sm"
+                    >
+                      Completed
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="paused"
+                      data-testid="filter-paused"
+                      className="shrink-0 px-2.5 py-2 text-xs sm:px-3 sm:py-1.5 sm:text-sm"
+                    >
+                      Paused
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="error"
+                      data-testid="filter-error"
+                      className="shrink-0 px-2.5 py-2 text-xs sm:px-3 sm:py-1.5 sm:text-sm"
+                    >
+                      Error
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-4">
-              <span className="text-sm font-medium text-muted-foreground">Protocol:</span>
-              <Tabs
-                value={typeFilter}
-                onValueChange={(value) => setTypeFilter(value as DownloadType | "all")}
-                aria-label="Filter downloads by protocol"
-              >
-                <TabsList className="border border-white/10 bg-slate-900/70">
-                  <TabsTrigger value="all">All Protocols</TabsTrigger>
-                  <TabsTrigger value="torrent" className="flex items-center gap-2">
-                    <Download className="h-3 w-3" /> Torrents
-                  </TabsTrigger>
-                  <TabsTrigger value="usenet" className="flex items-center gap-2">
-                    <Newspaper className="h-3 w-3" /> Usenet
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
+            <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+              <span className="shrink-0 text-sm font-medium text-muted-foreground">Protocol:</span>
+              <div className="min-w-0 flex-1 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] sm:overflow-visible sm:pb-0">
+                <Tabs
+                  value={typeFilter}
+                  onValueChange={(value) => setTypeFilter(value as DownloadType | "all")}
+                  aria-label="Filter downloads by protocol"
+                  className="w-max min-w-full sm:w-full"
+                >
+                  <TabsList className="inline-flex h-auto min-h-10 w-max flex-nowrap justify-start gap-0.5 border border-border bg-muted/60 p-1 sm:flex-wrap sm:justify-center dark:border-white/10 dark:bg-slate-900/70">
+                    <TabsTrigger value="all" className="shrink-0 px-2.5 py-2 text-xs sm:text-sm">
+                      All Protocols
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="torrent"
+                      className="flex shrink-0 items-center gap-1.5 px-2.5 py-2 text-xs sm:gap-2 sm:text-sm"
+                    >
+                      <Download className="h-3 w-3 shrink-0" /> Torrents
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="usenet"
+                      className="flex shrink-0 items-center gap-1.5 px-2.5 py-2 text-xs sm:gap-2 sm:text-sm"
+                    >
+                      <Newspaper className="h-3 w-3 shrink-0" /> Usenet
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
             </div>
           </div>
         </div>
@@ -374,12 +422,14 @@ export default function Downloads() {
               key={`${download.downloaderId}-${download.id}`}
               data-testid={`card-download-${download.id}`}
             >
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg leading-tight">{download.name}</CardTitle>
+              <CardHeader className="space-y-3 sm:space-y-0">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <CardTitle className="break-words text-base leading-tight sm:text-lg">
+                      {download.name}
+                    </CardTitle>
                     <CardDescription className="mt-2">
-                      <div className="flex flex-wrap gap-2 items-center">
+                      <div className="flex flex-wrap gap-1.5 sm:gap-2">
                         <Badge
                           variant={getStatusBadgeVariant(download.status)}
                           className="capitalize"
@@ -514,7 +564,7 @@ export default function Downloads() {
                       </div>
                     </CardDescription>
                   </div>
-                  <div className="flex items-center space-x-2 ml-4">
+                  <div className="flex shrink-0 items-center justify-end gap-2 sm:ml-4">
                     {download.status === "paused" ? (
                       <Button
                         variant="outline"
@@ -522,6 +572,7 @@ export default function Downloads() {
                         onClick={() => handleResume(download)}
                         disabled={resumeMutation.isPending}
                         data-testid={`button-resume-${download.id}`}
+                        className="h-10 w-10 touch-manipulation sm:h-9 sm:w-9"
                       >
                         <Play className="h-4 w-4" />
                       </Button>
@@ -532,6 +583,7 @@ export default function Downloads() {
                         onClick={() => handlePause(download)}
                         disabled={pauseMutation.isPending}
                         data-testid={`button-pause-${download.id}`}
+                        className="h-10 w-10 touch-manipulation sm:h-9 sm:w-9"
                       >
                         <Pause className="h-4 w-4" />
                       </Button>
@@ -542,6 +594,7 @@ export default function Downloads() {
                           variant="outline"
                           size="icon"
                           data-testid={`button-menu-${download.id}`}
+                          className="h-10 w-10 touch-manipulation sm:h-9 sm:w-9"
                         >
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>

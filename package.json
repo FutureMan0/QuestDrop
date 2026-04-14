@@ -1,7 +1,7 @@
 {
   "name": "questarr",
-  "version": "1.2.2",
-  "description": "A video game management application inspired by the -Arr apps. Track and organize your video game collection with automated discovery and download management.",
+  "version": "2.0.0",
+  "description": "Questarr More — extended video game library manager (based on Questarr): IGDB discovery, indexers & downloaders, Request workflow, optional auto-import into library folders, RSS/xREL, light & dark UI with mobile layout.",
   "type": "module",
   "packageManager": "npm@11.7.0",
   "license": "GPL-3.0-only",

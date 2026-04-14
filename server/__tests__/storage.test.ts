@@ -85,6 +85,32 @@ describe("MemStorage", () => {
     });
   });
 
+  describe("User Settings", () => {
+    it("should create user settings with auto-import defaults", async () => {
+      const settings = await storage.createUserSettings({ userId: "user-1" });
+
+      expect(settings.autoImportEnabled).toBe(false);
+      expect(settings.autoImportSourcePath).toBeNull();
+      expect(settings.autoImportLibraryRoot).toBeNull();
+      expect(settings.autoImportRenameEnabled).toBe(true);
+    });
+
+    it("should update auto-import user settings", async () => {
+      await storage.createUserSettings({ userId: "user-1" });
+      const updated = await storage.updateUserSettings("user-1", {
+        autoImportEnabled: true,
+        autoImportSourcePath: "/downloads/complete",
+        autoImportLibraryRoot: "/games/library",
+        autoImportRenameEnabled: false,
+      });
+
+      expect(updated?.autoImportEnabled).toBe(true);
+      expect(updated?.autoImportSourcePath).toBe("/downloads/complete");
+      expect(updated?.autoImportLibraryRoot).toBe("/games/library");
+      expect(updated?.autoImportRenameEnabled).toBe(false);
+    });
+  });
+
   describe("Game Management", () => {
     it("should add and retrieve games", async () => {
       const gameData: InsertGame = {

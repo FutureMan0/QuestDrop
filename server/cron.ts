@@ -6,6 +6,7 @@ import { DownloaderManager } from "./downloaders.js";
 import { searchAllIndexers } from "./search.js";
 import { xrelClient, DEFAULT_XREL_BASE } from "./xrel.js";
 import { buildDownloadRoutingMeta } from "../shared/download-routing.js";
+import { importCompletedGame } from "./importer.js";
 
 import { downloadRulesSchema } from "../shared/schema.js";
 import { categorizeDownload } from "../shared/download-categorizer.js";
@@ -268,6 +269,55 @@ async function checkDownloadStatus() {
             // Fetch game title for notification
             const game = await storage.getGame(download.gameId);
             const gameTitle = game ? game.title : download.downloadTitle;
+
+            if (game?.userId) {
+              const settings = await storage.getUserSettings(game.userId);
+              if (
+                settings?.autoImportEnabled &&
+                settings.autoImportSourcePath &&
+                settings.autoImportLibraryRoot
+              ) {
+                try {
+                  const importResult = await importCompletedGame({
+                    gameTitle: game.title,
+                    releaseTitle: download.downloadTitle || game.title,
+                    gamePlatforms: game.platforms,
+                    sourceRoot: settings.autoImportSourcePath,
+                    libraryRoot: settings.autoImportLibraryRoot,
+                    renameEnabled: settings.autoImportRenameEnabled ?? true,
+                  });
+
+                  if (importResult.imported) {
+                    const importNotification = await storage.addNotification({
+                      userId: game.userId ?? undefined,
+                      type: "success",
+                      title: "Auto-Import Completed",
+                      message: `"${gameTitle}" imported to ${importResult.destinationPath}`,
+                      link: "/library",
+                    });
+                    notifyUser("notification", importNotification);
+                  } else {
+                    igdbLogger.info(
+                      { gameId: game.id, reason: importResult.reason },
+                      "Auto-import skipped for completed download"
+                    );
+                  }
+                } catch (error) {
+                  igdbLogger.error(
+                    { error, gameId: game.id, gameTitle },
+                    "Auto-import failed for completed download"
+                  );
+                  const importErrorNotification = await storage.addNotification({
+                    userId: game.userId ?? undefined,
+                    type: "error",
+                    title: "Auto-Import Failed",
+                    message: `Could not import "${gameTitle}" automatically.`,
+                    link: "/settings",
+                  });
+                  notifyUser("notification", importErrorNotification);
+                }
+              }
+            }
 
             // Send notification
             const message = `Download finished for ${gameTitle}`;

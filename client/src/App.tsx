@@ -73,7 +73,8 @@ function App() {
     "/calendar",
     "/wishlist",
   ]);
-  const canShowGlobalSearchResults = searchableRoutes.has(location) && globalSearchQuery.trim().length > 0;
+  const canShowGlobalSearchResults =
+    searchableRoutes.has(location) && globalSearchQuery.trim().length > 0;
 
   // Custom sidebar width for the application
   const style = {
@@ -102,13 +103,13 @@ function App() {
       case "/calendar":
         return "Calendar";
       case "/wishlist":
-        return "Wishlist";
+        return "Request";
       case "/xrel":
         return "xREL.to releases";
       case "/rss":
         return "RSS Feeds";
       default:
-        return "Questarr";
+        return "Questarr More";
     }
   };
 
@@ -132,7 +133,7 @@ function App() {
   if (location === "/login" || location === "/setup") {
     return (
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <AuthProvider>
             <Router />
             <Toaster />
@@ -144,15 +145,15 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         <AuthProvider>
           <TooltipProvider>
             <SidebarProvider style={style as React.CSSProperties}>
-              <div className="flex h-screen w-full overflow-hidden">
+              <div className="flex h-dvh min-h-dvh w-full overflow-hidden">
                 <AppSidebar activeItem={location} onNavigate={navigate} />
-                <div className="flex min-w-0 flex-1 flex-col bg-gradient-to-b from-transparent via-slate-950/30 to-slate-950/45">
+                <div className="flex min-w-0 flex-1 flex-col bg-gradient-to-b from-transparent via-background to-muted/40 dark:via-slate-950/30 dark:to-slate-950/45">
                   <Header title={getPageTitle(location)} />
-                  <main className="flex-1 overflow-hidden">
+                  <main className="flex min-h-0 flex-1 overflow-hidden">
                     {canShowGlobalSearchResults ? (
                       <GlobalSearchResults query={globalSearchQuery.trim()} />
                     ) : (

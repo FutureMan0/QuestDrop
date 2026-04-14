@@ -29,6 +29,12 @@ export const userSettings = sqliteTable("user_settings", {
   lastAutoSearch: integer("last_auto_search", { mode: "timestamp_ms" }),
   xrelSceneReleases: integer("xrel_scene_releases", { mode: "boolean" }).notNull().default(true),
   xrelP2pReleases: integer("xrel_p2p_releases", { mode: "boolean" }).notNull().default(false),
+  autoImportEnabled: integer("auto_import_enabled", { mode: "boolean" }).notNull().default(false),
+  autoImportSourcePath: text("auto_import_source_path"),
+  autoImportLibraryRoot: text("auto_import_library_root"),
+  autoImportRenameEnabled: integer("auto_import_rename_enabled", { mode: "boolean" })
+    .notNull()
+    .default(true),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).default(
     sql`(strftime('%s', 'now') * 1000)`
   ),

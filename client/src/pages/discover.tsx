@@ -3,6 +3,7 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Settings2, AlertCircle } from "lucide-react";
 import GameCarouselSection from "@/components/GameCarouselSection";
+import GameGrid from "@/components/GameGrid";
 import { type Game, type Config } from "@shared/schema";
 import { type GameStatus } from "@/components/StatusBadge";
 import { useToast } from "@/hooks/use-toast";
@@ -76,7 +77,7 @@ const SelectTriggerWithSpinner = ({
 
 export default function DiscoverPage() {
   const [selectedGenre, setSelectedGenre] = useState<string>("Adventure");
-  const [selectedPlatform, setSelectedPlatform] = useState<string>("PC");
+  const [selectedPlatform, setSelectedPlatform] = useState<string>("Alle");
   const [showSettings, setShowSettings] = useState(false);
   const [hideOwned, setHideOwned] = useState<boolean>(() => {
     return localStorage.getItem("discoverHideOwned") === "true";
@@ -162,7 +163,7 @@ export default function DiscoverPage() {
           return true;
         })
         .map((g: Game) => {
-          const localMatch = igdbToLocalGameMap.get(g.igdbId);
+          const localMatch = g.igdbId != null ? igdbToLocalGameMap.get(g.igdbId) : undefined;
           if (!localMatch) return g;
 
           // Merge local status/identity so card badges and actions reflect real collection state.
@@ -516,6 +517,12 @@ export default function DiscoverPage() {
   }, [debouncedGenre, genres, filterGames]);
 
   const fetchGamesByPlatform = useCallback(async (): Promise<Game[]> => {
+    if (debouncedPlatform === "Alle") {
+      const response = await apiRequest("GET", "/api/igdb/popular?limit=40");
+      const games = await response.json();
+      return filterGames(games);
+    }
+
     // Validate selectedPlatform against known platforms before making API call
     const validPlatforms: Platform[] = platforms.length > 0 ? platforms : DEFAULT_PLATFORMS;
     const isValidPlatform = validPlatforms.some((p: Platform) => p.name === debouncedPlatform);
@@ -531,6 +538,16 @@ export default function DiscoverPage() {
     const games = await response.json();
     return filterGames(games);
   }, [debouncedPlatform, platforms, filterGames]);
+
+  const {
+    data: allPlatformGames = [],
+    isLoading: isLoadingAllPlatformGames,
+    isFetching: isFetchingAllPlatformGames,
+  } = useQuery<Game[]>({
+    queryKey: ["/api/igdb/platform/all-grid", hiddenIgdbIds.size, hideOwned, hideWanted],
+    queryFn: fetchGamesByPlatform,
+    enabled: !!config?.igdb.configured && debouncedPlatform === "Alle",
+  });
 
   if (config && !config.igdb.configured) {
     return (
@@ -567,7 +584,7 @@ export default function DiscoverPage() {
                     </p>
                   </div>
 
-                  <TabsList className="border border-white/10 bg-slate-900/70">
+                  <TabsList className="border border-border bg-muted/60 dark:border-white/10 dark:bg-slate-900/70">
                     <TabsTrigger value="igdb">IGDB Discovery</TabsTrigger>
                     <TabsTrigger value="rss" className="gap-2">
                       <Rss className="h-4 w-4" /> RSS Feeds
@@ -686,6 +703,7 @@ export default function DiscoverPage() {
                     <SelectValue placeholder="Select platform" />
                   </SelectTriggerWithSpinner>
                   <SelectContent>
+                    <SelectItem value="Alle">Alle</SelectItem>
                     {displayPlatforms.map((platform: Platform) => (
                       <SelectItem key={platform.id} value={platform.name}>
                         {platform.name}
@@ -694,21 +712,38 @@ export default function DiscoverPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <GameCarouselSection
-                title={`${selectedPlatform} Games`}
-                queryKey={[
-                  "/api/igdb/platform",
-                  debouncedPlatform,
-                  hiddenIgdbIds.size,
-                  hideOwned,
-                  hideWanted,
-                ]}
-                queryFn={fetchGamesByPlatform}
-                onStatusChange={handleStatusChange}
-                onTrackGame={handleTrackGame}
-                onToggleHidden={handleToggleHidden}
-                isDiscovery={true}
-              />
+              {selectedPlatform === "Alle" ? (
+                <div className="space-y-4">
+                  <h2 className="text-xl font-semibold">Alle Spiele</h2>
+                  <GameGrid
+                    games={allPlatformGames}
+                    onStatusChange={handleStatusChange}
+                    onTrackGame={handleTrackGame}
+                    onToggleHidden={handleToggleHidden}
+                    isDiscovery
+                    isLoading={isLoadingAllPlatformGames}
+                    isFetching={isFetchingAllPlatformGames}
+                    columns={6}
+                  />
+                </div>
+              ) : (
+                <GameCarouselSection
+                  title={`${selectedPlatform} Games`}
+                  queryKey={[
+                    "/api/igdb/platform",
+                    debouncedPlatform,
+                    hiddenIgdbIds.size,
+                    hideOwned,
+                    hideWanted,
+                  ]}
+                  queryFn={fetchGamesByPlatform}
+                  onStatusChange={handleStatusChange}
+                  onTrackGame={handleTrackGame}
+                  onToggleHidden={handleToggleHidden}
+                  isDiscovery={true}
+                  loop
+                />
+              )}
             </div>
           </TabsContent>
 

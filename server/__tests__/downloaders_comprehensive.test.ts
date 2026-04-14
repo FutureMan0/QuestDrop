@@ -353,16 +353,24 @@ describe("Downloader Comprehensive Tests", () => {
       settings: null,
     };
 
+    const minimalNzbXml =
+      '<?xml version="1.0" encoding="utf-8"?><nzb xmlns="http://www.newzbin.com/DTD/2003/nzb"></nzb>';
+
     it("should add NZB successfully", async () => {
       const addResponse = {
         status: true,
         nzo_ids: ["nzo123"],
       };
 
-      fetchMock.mockResolvedValueOnce({
-        ok: true,
-        json: async () => addResponse,
-      });
+      fetchMock
+        .mockResolvedValueOnce({
+          ok: true,
+          arrayBuffer: async () => new TextEncoder().encode(minimalNzbXml).buffer,
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => addResponse,
+        });
 
       const result = await DownloaderManager.addDownload(downloader, {
         url: "http://example.com/test.nzb",
@@ -380,10 +388,15 @@ describe("Downloader Comprehensive Tests", () => {
         error: "Duplicate NZB",
       };
 
-      fetchMock.mockResolvedValueOnce({
-        ok: true,
-        json: async () => duplicateResponse,
-      });
+      fetchMock
+        .mockResolvedValueOnce({
+          ok: true,
+          arrayBuffer: async () => new TextEncoder().encode(minimalNzbXml).buffer,
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => duplicateResponse,
+        });
 
       const result = await DownloaderManager.addDownload(downloader, {
         url: "http://example.com/test.nzb",

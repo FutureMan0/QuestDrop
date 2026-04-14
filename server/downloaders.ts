@@ -3047,7 +3047,10 @@ export class DownloaderManager {
     return `${normalizedBase}${separator}${consoleSlug}`;
   }
 
-  private static prepareDownloadRequest(downloader: Downloader, request: DownloadRequest): DownloadRequest {
+  private static prepareDownloadRequest(
+    downloader: Downloader,
+    request: DownloadRequest
+  ): DownloadRequest {
     const routing = buildDownloadRoutingMeta({
       releaseTitle: request.title,
       gameTitle: request.gameTitle,
@@ -3336,6 +3339,18 @@ interface SABnzbdHistory {
   }>;
 }
 
+function looksLikeNzbBuffer(buf: Buffer): boolean {
+  if (buf.length < 20) return false;
+  const head = buf.subarray(0, Math.min(buf.length, 400)).toString("utf-8").toLowerCase();
+  return head.includes("<nzb") || head.includes("<?xml");
+}
+
+function sanitizeNzbBasename(title: string): string {
+  const noControls = Array.from(title, (c) => (c.charCodeAt(0) < 32 ? "_" : c)).join("");
+  const cleaned = noControls.replace(/[<>:"/\\|?*]/g, "_").trim();
+  return (cleaned.length > 0 ? cleaned : "download").slice(0, 200);
+}
+
 export class SABnzbdClient implements DownloaderClient {
   private downloader: Downloader;
 
@@ -3382,6 +3397,42 @@ export class SABnzbdClient implements DownloaderClient {
     }
 
     return url.toString();
+  }
+
+  private parseSabAddJsonResponse(data: { status?: boolean; nzo_ids?: string[]; error?: string }): {
+    success: boolean;
+    id?: string;
+    message: string;
+  } {
+    if (data.status === true) {
+      if (data.nzo_ids && data.nzo_ids.length > 0) {
+        return {
+          success: true,
+          id: data.nzo_ids[0],
+          message: "NZB added successfully",
+        };
+      }
+      return {
+        success: true,
+        message: "NZB added successfully (likely duplicate or merged)",
+      };
+    }
+
+    if (
+      data.error &&
+      typeof data.error === "string" &&
+      data.error.toLowerCase().includes("duplicate")
+    ) {
+      return {
+        success: true,
+        message: `NZB already exists: ${data.error}`,
+      };
+    }
+
+    return {
+      success: false,
+      message: data.error || "Failed to add NZB - SABnzbd returned success:false",
+    };
   }
 
   private async fetchWithFallback(url: string, options: RequestInit = {}): Promise<Response> {
@@ -3495,6 +3546,82 @@ export class SABnzbdClient implements DownloaderClient {
       return { success: false, message: `Unsafe URL blocked: ${request.url}` };
     }
 
+    // Prefer fetch-on-Questarr + addfile: SABnzbd's addurl makes SAB fetch the indexer URL,
+    // which often fails (localhost indexer links, long query strings, vHost/HTTP quirks)
+    // even though the same URL works when pasted into SAB's UI or when Questarr fetches it.
+    try {
+      const nzbResponse = await safeFetch(request.url, {
+        headers: {
+          Accept: "application/x-nzb, application/xml;q=0.9, */*;q=0.8",
+          "User-Agent": DOWNLOAD_CLIENT_USER_AGENT,
+        },
+        signal: AbortSignal.timeout(120000),
+      });
+
+      if (nzbResponse.ok) {
+        const buf = Buffer.from(await nzbResponse.arrayBuffer());
+        if (buf.length > 0 && looksLikeNzbBuffer(buf)) {
+          const baseName = sanitizeNzbBasename(request.title);
+          const apiUrl = this.getApiUrl("addfile", {
+            cat: request.category || "games",
+            priority: (request.priority || 0).toString(),
+            nzbname: baseName,
+          });
+
+          const form = new FormData();
+          // SABnzbd addfile expects multipart field name "name" (same as curl -F "name=@file.nzb")
+          form.append("name", new Blob([buf], { type: "application/x-nzb" }), `${baseName}.nzb`);
+
+          const uploadResponse = await this.fetchWithFallback(apiUrl, {
+            method: "POST",
+            body: form,
+            signal: AbortSignal.timeout(120000),
+          });
+
+          if (uploadResponse.ok) {
+            const data = (await uploadResponse.json()) as {
+              status?: boolean;
+              nzo_ids?: string[];
+              error?: string;
+            };
+            const parsed = this.parseSabAddJsonResponse(data);
+            if (parsed.success) {
+              downloadersLogger.debug(
+                { title: request.title },
+                "SABnzbd: NZB added via addfile (prefetched by Questarr)"
+              );
+              return parsed;
+            }
+            downloadersLogger.warn(
+              { message: parsed.message },
+              "SABnzbd addfile failed, falling back to addurl"
+            );
+          } else {
+            const errorText = await uploadResponse.text().catch(() => "No error details");
+            downloadersLogger.warn(
+              { status: uploadResponse.status, errorText },
+              "SABnzbd addfile HTTP error, falling back to addurl"
+            );
+          }
+        } else {
+          downloadersLogger.debug(
+            { url: request.url },
+            "NZB prefetch was empty or not XML/NZB; falling back to addurl"
+          );
+        }
+      } else {
+        downloadersLogger.warn(
+          { status: nzbResponse.status, url: request.url },
+          "NZB prefetch HTTP error; falling back to addurl"
+        );
+      }
+    } catch (error) {
+      downloadersLogger.warn(
+        { error, url: request.url },
+        "NZB prefetch failed; falling back to SABnzbd addurl"
+      );
+    }
+
     const url = this.getApiUrl("addurl", {
       name: request.url,
       nzbname: request.title,
@@ -3513,40 +3640,12 @@ export class SABnzbdClient implements DownloaderClient {
         return { success: false, message: `HTTP ${response.status}: ${errorText}` };
       }
 
-      const data = await response.json();
-
-      if (data.status === true) {
-        if (data.nzo_ids && data.nzo_ids.length > 0) {
-          return {
-            success: true,
-            id: data.nzo_ids[0],
-            message: "NZB added successfully",
-          };
-        } else {
-          // Status true but no ID usually means duplicate in SABnzbd (or merged)
-          return {
-            success: true,
-            message: "NZB added successfully (likely duplicate or merged)",
-          };
-        }
-      }
-
-      // Check for specific duplicate error
-      if (
-        data.error &&
-        typeof data.error === "string" &&
-        data.error.toLowerCase().includes("duplicate")
-      ) {
-        return {
-          success: true,
-          message: `NZB already exists: ${data.error}`,
-        };
-      }
-
-      return {
-        success: false,
-        message: data.error || "Failed to add NZB - SABnzbd returned success:false",
+      const data = (await response.json()) as {
+        status?: boolean;
+        nzo_ids?: string[];
+        error?: string;
       };
+      return this.parseSabAddJsonResponse(data);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       return {
@@ -3702,17 +3801,73 @@ export class SABnzbdClient implements DownloaderClient {
       const response = await this.fetchWithFallback(url);
       const data = await response.json();
       const queue: SABnzbdQueue = data.queue;
+      const queueSpeed = (parseFloat(queue.speed) || 0) * 1024 * 1024; // Convert MB/s to bytes/s
 
-      const results: DownloadStatus[] = [];
+      // Build statuses directly from queue items to avoid per-item roundtrips.
+      // The previous implementation called getDownloadStatus() for each slot,
+      // which fetched queue/history repeatedly and caused major slowdown under load.
+      return queue.slots.map((item) => {
+        const progress = parseFloat(item.percentage) || 0;
+        const totalMB = parseFloat(item.mb) || 0;
+        const leftMB = parseFloat(item.mbleft) || 0;
+        const downloadedMB = totalMB - leftMB;
 
-      for (const item of queue.slots) {
-        const status = await this.getDownloadStatus(item.nzo_id);
-        if (status) {
-          results.push(status);
+        let eta: number | undefined;
+        if (item.timeleft && item.timeleft !== "0:00:00" && item.timeleft !== "unknown") {
+          const [hours, minutes, seconds] = item.timeleft.split(":").map(Number);
+          eta = hours * 3600 + minutes * 60 + seconds;
         }
-      }
 
-      return results;
+        let status: DownloadStatus["status"];
+        let repairStatus: DownloadStatus["repairStatus"];
+        let unpackStatus: DownloadStatus["unpackStatus"];
+
+        switch (item.status.toLowerCase()) {
+          case "downloading":
+          case "fetching":
+            status = "downloading";
+            break;
+          case "paused":
+            status = "paused";
+            break;
+          case "repairing":
+            status = "repairing";
+            repairStatus = "repairing";
+            break;
+          case "extracting":
+          case "unpacking":
+            status = "unpacking";
+            unpackStatus = "unpacking";
+            break;
+          case "completed":
+            status = "completed";
+            repairStatus = "good";
+            unpackStatus = "completed";
+            break;
+          case "failed":
+            status = "error";
+            repairStatus = "failed";
+            break;
+          default:
+            status = "downloading";
+        }
+
+        return {
+          id: item.nzo_id,
+          name: item.filename,
+          downloadType: "usenet" as const,
+          status,
+          progress,
+          downloadSpeed: queueSpeed,
+          eta,
+          size: totalMB * 1024 * 1024,
+          downloaded: downloadedMB * 1024 * 1024,
+          category: item.cat,
+          repairStatus,
+          unpackStatus,
+          age: parseFloat(item.avg_age) || undefined,
+        };
+      });
     } catch (error) {
       downloadersLogger.error({ error }, "Failed to get SABnzbd queue");
       return [];
@@ -4243,16 +4398,64 @@ export class NZBGetClient implements DownloaderClient {
   async getAllDownloads(): Promise<DownloadStatus[]> {
     try {
       const queue = (await this.makeXMLRPCRequest("listgroups")) as NZBGetListResult[];
-      const results: DownloadStatus[] = [];
 
-      for (const item of queue) {
-        const status = await this.getDownloadStatus(item.NZBID.toString());
-        if (status) {
-          results.push(status);
+      // Build statuses directly from queue items to avoid repeated listgroups/history calls.
+      return queue.map((item) => {
+        const progress =
+          item.FileSizeMB > 0
+            ? ((item.FileSizeMB - item.RemainingSizeMB) / item.FileSizeMB) * 100
+            : 0;
+
+        let eta: number | undefined;
+        if (item.DownloadRate > 0 && item.RemainingSizeMB > 0) {
+          eta = (item.RemainingSizeMB * 1024 * 1024) / item.DownloadRate;
         }
-      }
 
-      return results;
+        let status: DownloadStatus["status"];
+        let repairStatus: DownloadStatus["repairStatus"];
+        let unpackStatus: DownloadStatus["unpackStatus"];
+
+        switch (item.Status) {
+          case "DOWNLOADING":
+          case "FETCHING":
+            status = "downloading";
+            break;
+          case "PAUSED":
+            status = "paused";
+            break;
+          case "POST_PROCESSING":
+            if (item.PostInfoText.includes("Repairing")) {
+              status = "repairing";
+              repairStatus = "repairing";
+            } else if (
+              item.PostInfoText.includes("Unpacking") ||
+              item.PostInfoText.includes("Extracting")
+            ) {
+              status = "unpacking";
+              unpackStatus = "unpacking";
+            } else {
+              status = "downloading";
+            }
+            break;
+          default:
+            status = "downloading";
+        }
+
+        return {
+          id: item.NZBID.toString(),
+          name: item.NZBName,
+          downloadType: "usenet" as const,
+          status,
+          progress,
+          downloadSpeed: item.DownloadRate,
+          eta,
+          size: item.FileSizeMB * 1024 * 1024,
+          downloaded: item.DownloadedSizeMB * 1024 * 1024,
+          category: item.Category,
+          repairStatus,
+          unpackStatus,
+        };
+      });
     } catch (error) {
       downloadersLogger.error({ error }, "Failed to get NZBGet queue");
       return [];

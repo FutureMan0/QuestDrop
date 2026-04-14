@@ -10,7 +10,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Calendar, Star, Monitor, Tag, Download, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { type Downloader, type Game } from "@shared/schema";
@@ -57,16 +63,6 @@ export default function GameDetailsModal({ game, open, onOpenChange }: GameDetai
     },
   });
 
-  if (!game) return null;
-
-  const handleRemoveGame = () => {
-    removeGameMutation.mutate(game.id);
-  };
-
-  const handleDownloadClick = () => {
-    setDownloadOpen(true);
-  };
-
   const hasDownloaders = downloaders.length > 0;
   const preferredLabel = useMemo(() => {
     if (preferredDownloaderId === "auto") return "Auto";
@@ -81,6 +77,16 @@ export default function GameDetailsModal({ game, open, onOpenChange }: GameDetai
       setPreferredDownloaderId("auto");
     }
   }, [downloaders, open, preferredDownloaderId]);
+
+  if (!game) return null;
+
+  const handleRemoveGame = () => {
+    removeGameMutation.mutate(game.id);
+  };
+
+  const handleDownloadClick = () => {
+    setDownloadOpen(true);
+  };
 
   const SUMMARY_LIMIT = 280;
   const isSummaryLong = game.summary && game.summary.length > SUMMARY_LIMIT;
@@ -100,7 +106,7 @@ export default function GameDetailsModal({ game, open, onOpenChange }: GameDetai
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="flex h-[88vh] max-h-[88vh] max-w-[1100px] flex-col overflow-hidden border border-white/10 bg-[#050f23] p-0 text-slate-100">
+        <DialogContent className="flex h-[88vh] max-h-[88vh] max-w-[1120px] flex-col overflow-hidden rounded-2xl border border-border bg-background p-0 text-foreground shadow-xl dark:border-white/15 dark:bg-[#050f23] dark:text-slate-100 dark:shadow-[0_30px_80px_-35px_rgba(0,0,0,0.95)]">
           <DialogHeader className="sr-only">
             <DialogTitle data-testid={`text-game-title-${game.id}`}>{game.title}</DialogTitle>
             <DialogDescription>Detailed information about {game.title}</DialogDescription>
@@ -108,20 +114,24 @@ export default function GameDetailsModal({ game, open, onOpenChange }: GameDetai
 
           <div className="relative flex min-h-0 flex-1">
             <div className="pointer-events-none absolute inset-x-0 top-0 h-[320px] overflow-hidden">
-              <img src={heroImage} alt="" className="h-full w-full object-cover opacity-40 blur-[1px]" />
-              <div className="absolute inset-0 bg-gradient-to-b from-sky-400/25 via-[#071734]/80 to-[#050f23]" />
-              <div className="absolute inset-0 bg-gradient-to-r from-[#050f23]/40 via-transparent to-[#050f23]/60" />
+              <img
+                src={heroImage}
+                alt=""
+                className="h-full w-full object-cover opacity-40 blur-[1px]"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-sky-400/20 via-background/88 to-background dark:from-sky-400/25 dark:via-[#071734]/80 dark:to-[#050f23]" />
+              <div className="absolute inset-0 bg-gradient-to-r from-background/55 via-transparent to-background/70 dark:from-[#050f23]/40 dark:via-transparent dark:to-[#050f23]/60" />
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
               <div className="relative space-y-6 p-5 pb-8 md:p-8">
-                <section className="rounded-[28px] border border-white/10 bg-slate-950/55 p-4 backdrop-blur-md md:p-6">
+                <section className="rounded-[30px] border border-border bg-card/85 p-4 shadow-sm backdrop-blur-xl md:p-6 dark:border-white/15 dark:bg-slate-950/50 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                   <div className="grid gap-5 lg:grid-cols-[190px_1fr_290px]">
                     <div>
                       <img
                         src={game.coverUrl || "/placeholder-game-cover.jpg"}
                         alt={`${game.title} cover`}
-                        className="w-full rounded-2xl border border-white/20 object-cover shadow-xl"
+                        className="w-full rounded-2xl border border-border object-cover shadow-xl ring-1 ring-black/5 dark:border-white/25 dark:ring-white/10"
                         style={{ aspectRatio: "2 / 3" }}
                         data-testid={`img-cover-${game.id}`}
                       />
@@ -129,8 +139,10 @@ export default function GameDetailsModal({ game, open, onOpenChange }: GameDetai
 
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <h2 className="text-3xl font-bold leading-tight text-white md:text-4xl">{game.title}</h2>
-                        <div className="flex flex-wrap items-center gap-2 text-sm text-slate-200/90">
+                        <h2 className="text-3xl font-bold leading-tight text-foreground md:text-4xl dark:text-white">
+                          {game.title}
+                        </h2>
+                        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground dark:text-slate-200/90">
                           <Badge className="border-emerald-400/50 bg-emerald-500/20 text-emerald-100">
                             {statusLabel}
                           </Badge>
@@ -146,12 +158,15 @@ export default function GameDetailsModal({ game, open, onOpenChange }: GameDetai
                       </div>
 
                       {game.summary && (
-                        <p className="text-sm leading-relaxed text-slate-200/85" data-testid={`text-summary-${game.id}`}>
+                        <p
+                          className="max-w-[64ch] text-sm leading-7 text-muted-foreground dark:text-slate-200/85"
+                          data-testid={`text-summary-${game.id}`}
+                        >
                           {displaySummary}
                           {isSummaryLong && (
                             <Button
                               variant="link"
-                              className="ml-1 h-auto p-0 font-semibold text-sky-300"
+                              className="ml-1 h-auto p-0 font-semibold text-primary dark:text-sky-300"
                               onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}
                             >
                               {isSummaryExpanded ? "Show less" : "Read more"}
@@ -160,9 +175,12 @@ export default function GameDetailsModal({ game, open, onOpenChange }: GameDetai
                         </p>
                       )}
 
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Select value={preferredDownloaderId} onValueChange={setPreferredDownloaderId}>
-                          <SelectTrigger className="h-10 w-[240px] border-white/20 bg-slate-900/80 text-slate-100">
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        <Select
+                          value={preferredDownloaderId}
+                          onValueChange={setPreferredDownloaderId}
+                        >
+                          <SelectTrigger className="h-10 w-full max-w-[240px] rounded-xl border-border bg-background sm:w-[240px] dark:border-white/25 dark:bg-slate-900/85 dark:text-slate-100">
                             <SelectValue placeholder="Choose provider" />
                           </SelectTrigger>
                           <SelectContent>
@@ -177,7 +195,7 @@ export default function GameDetailsModal({ game, open, onOpenChange }: GameDetai
 
                         <Button
                           variant="default"
-                          className="h-10 gap-2 rounded-xl bg-indigo-500 px-4 hover:bg-indigo-400"
+                          className="h-10 gap-2 rounded-xl bg-indigo-500/95 px-4 text-white shadow-md shadow-indigo-900/30 transition hover:bg-indigo-400"
                           onClick={handleDownloadClick}
                           disabled={!hasDownloaders}
                           data-testid="button-download-game"
@@ -188,7 +206,7 @@ export default function GameDetailsModal({ game, open, onOpenChange }: GameDetai
 
                         <Button
                           variant="outline"
-                          className="h-10 gap-2 rounded-xl border-red-400/40 bg-red-900/20 text-red-100 hover:bg-red-900/35"
+                          className="h-10 gap-2 rounded-xl border-red-400/40 bg-red-900/15 text-red-100 hover:bg-red-900/30"
                           onClick={handleRemoveGame}
                           disabled={removeGameMutation.isPending}
                           data-testid={`button-remove-game-quick-${game.id}`}
@@ -199,23 +217,35 @@ export default function GameDetailsModal({ game, open, onOpenChange }: GameDetai
                       </div>
                     </div>
 
-                    <Card className="rounded-2xl border border-white/15 bg-slate-950/75">
+                    <Card className="rounded-2xl border border-border bg-muted/40 shadow-sm backdrop-blur-md dark:border-white/15 dark:bg-slate-950/70 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
                       <CardContent className="space-y-3 p-4 text-sm">
-                        <div className="flex items-center justify-between border-b border-white/10 pb-2">
-                          <span className="text-slate-300">Provider</span>
-                          <span className="font-medium text-white">{preferredLabel}</span>
+                        <div className="flex items-center justify-between border-b border-border pb-2 dark:border-white/10">
+                          <span className="text-muted-foreground dark:text-slate-300">
+                            Provider
+                          </span>
+                          <span className="font-medium text-foreground dark:text-white">
+                            {preferredLabel}
+                          </span>
                         </div>
-                        <div className="flex items-center justify-between border-b border-white/10 pb-2">
-                          <span className="text-slate-300">Release Date</span>
-                          <span className="font-medium text-white">{releaseDateLabel}</span>
+                        <div className="flex items-center justify-between border-b border-border pb-2 dark:border-white/10">
+                          <span className="text-muted-foreground dark:text-slate-300">
+                            Release Date
+                          </span>
+                          <span className="font-medium text-foreground dark:text-white">
+                            {releaseDateLabel}
+                          </span>
                         </div>
-                        <div className="flex items-center justify-between border-b border-white/10 pb-2">
-                          <span className="text-slate-300">Rating</span>
-                          <span className="font-medium text-white">{ratingLabel}</span>
+                        <div className="flex items-center justify-between border-b border-border pb-2 dark:border-white/10">
+                          <span className="text-muted-foreground dark:text-slate-300">Rating</span>
+                          <span className="font-medium text-foreground dark:text-white">
+                            {ratingLabel}
+                          </span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-slate-300">Status</span>
-                          <Badge className="border-white/20 bg-white/10 text-slate-100">{statusLabel}</Badge>
+                          <span className="text-muted-foreground dark:text-slate-300">Status</span>
+                          <Badge className="border-border bg-muted text-foreground dark:border-white/20 dark:bg-white/10 dark:text-slate-100">
+                            {statusLabel}
+                          </Badge>
                         </div>
                       </CardContent>
                     </Card>
@@ -223,11 +253,11 @@ export default function GameDetailsModal({ game, open, onOpenChange }: GameDetai
                 </section>
 
                 <section className="grid gap-6 lg:grid-cols-2">
-                  <Card className="rounded-3xl border border-white/10 bg-slate-950/60">
+                  <Card className="rounded-3xl border border-border bg-muted/35 shadow-sm backdrop-blur-md dark:border-white/12 dark:bg-slate-950/58 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
                     <CardContent className="space-y-4 p-5">
                       {game.genres && game.genres.length > 0 && (
                         <div>
-                          <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
+                          <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">
                             <Tag className="h-4 w-4" />
                             Genres
                           </h3>
@@ -235,7 +265,7 @@ export default function GameDetailsModal({ game, open, onOpenChange }: GameDetai
                             {game.genres.map((genre, index) => (
                               <Badge
                                 key={index}
-                                className="rounded-full border-white/20 bg-white/10 text-slate-100"
+                                className="rounded-full border-border bg-muted text-foreground dark:border-white/20 dark:bg-white/10 dark:text-slate-100"
                                 data-testid={`badge-genre-${genre.toLowerCase().replace(/\s+/g, "-")}`}
                               >
                                 {genre}
@@ -247,7 +277,7 @@ export default function GameDetailsModal({ game, open, onOpenChange }: GameDetai
 
                       {game.platforms && game.platforms.length > 0 && (
                         <div>
-                          <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
+                          <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">
                             <Monitor className="h-4 w-4" />
                             Platforms
                           </h3>
@@ -256,7 +286,7 @@ export default function GameDetailsModal({ game, open, onOpenChange }: GameDetai
                               <Badge
                                 key={index}
                                 variant="outline"
-                                className="rounded-full border-white/25 bg-slate-900/70 text-slate-100"
+                                className="rounded-full border-border bg-background text-foreground dark:border-white/25 dark:bg-slate-900/70 dark:text-slate-100"
                                 data-testid={`badge-platform-${platform.toLowerCase().replace(/\s+/g, "-")}`}
                               >
                                 {platform}
@@ -269,16 +299,16 @@ export default function GameDetailsModal({ game, open, onOpenChange }: GameDetai
                   </Card>
 
                   {game.screenshots && game.screenshots.length > 0 && (
-                    <Card className="rounded-3xl border border-white/10 bg-slate-950/60">
+                    <Card className="rounded-3xl border border-border bg-muted/35 shadow-sm backdrop-blur-md dark:border-white/12 dark:bg-slate-950/58 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
                       <CardContent className="p-5">
-                        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-300">
+                        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">
                           Screenshots
                         </h3>
                         <div className="grid grid-cols-2 gap-3">
                           {game.screenshots.slice(0, 6).map((screenshot, index) => (
                             <Card
                               key={index}
-                              className="overflow-hidden rounded-xl border border-white/10 bg-slate-900/60 transition-transform hover:scale-[1.02] cursor-pointer"
+                              className="cursor-pointer overflow-hidden rounded-xl border border-border bg-card transition-all hover:scale-[1.02] hover:border-primary/30 hover:shadow-lg dark:border-white/12 dark:bg-slate-900/65 dark:hover:border-white/25"
                               onClick={() => setSelectedScreenshot(screenshot)}
                               data-testid={`screenshot-${index}`}
                             >

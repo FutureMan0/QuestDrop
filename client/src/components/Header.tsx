@@ -96,49 +96,59 @@ export default function Header({ title = "Dashboard" }: HeaderProps) {
     setTheme(theme === "dark" ? "light" : "dark");
   };
 
+  const searchField = isSearchEnabledRoute ? (
+    <div className="relative w-full max-w-2xl">
+      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <Input
+        value={headerSearchQuery}
+        onChange={(event) => {
+          const value = event.target.value;
+          setHeaderSearchQuery(value);
+          syncGlobalSearch(value);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            setHeaderSearchQuery("");
+            syncGlobalSearch("");
+            (event.currentTarget as HTMLInputElement).blur();
+          }
+        }}
+        placeholder="Search games..."
+        className="h-11 touch-manipulation rounded-full border-border/70 bg-background/80 pl-9 pr-3 sm:h-10"
+        aria-label="Global game search"
+      />
+    </div>
+  ) : null;
+
   return (
-    <div className="flex flex-col w-full z-10">
-      <header className="glass-surface flex items-center justify-between border-b border-white/10 p-4">
-        <div className="flex items-center gap-4 flex-1 min-w-0">
+    <div className="z-10 flex w-full flex-col">
+      <header className="glass-surface flex flex-col gap-3 border-b border-border/70 p-3 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:p-4">
+        <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-4">
           <Tooltip>
             <TooltipTrigger asChild>
-              <SidebarTrigger data-testid="button-sidebar-toggle" />
+              <SidebarTrigger
+                data-testid="button-sidebar-toggle"
+                className="size-11 shrink-0 touch-manipulation sm:size-9"
+              />
             </TooltipTrigger>
             <TooltipContent side="right">
               <p>Toggle Sidebar</p>
             </TooltipContent>
           </Tooltip>
-          <h1 className="text-xl font-semibold" data-testid="text-page-title">
+          <h1
+            className="min-w-0 flex-1 truncate text-base font-semibold sm:flex-none sm:text-xl"
+            data-testid="text-page-title"
+          >
             {title}
           </h1>
 
           {isSearchEnabledRoute && (
-            <div className="relative ml-2 w-full max-w-2xl">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={headerSearchQuery}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  setHeaderSearchQuery(value);
-                  syncGlobalSearch(value);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === "Escape") {
-                    event.preventDefault();
-                    setHeaderSearchQuery("");
-                    syncGlobalSearch("");
-                    (event.currentTarget as HTMLInputElement).blur();
-                  }
-                }}
-                placeholder="Search games..."
-                className="h-10 rounded-full border-border/70 bg-background/70 pl-9 pr-3"
-                aria-label="Global game search"
-              />
-            </div>
+            <div className="ml-1 hidden min-w-0 flex-1 md:ml-2 md:block">{searchField}</div>
           )}
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex shrink-0 items-center justify-between gap-2 sm:justify-end sm:gap-4">
           {/* Storage Info */}
           <div className="flex items-center gap-2 sm:gap-3">
             {isLoading && (
@@ -180,12 +190,13 @@ export default function Header({ title = "Dashboard" }: HeaderProps) {
               ))}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             <NotificationCenter />
 
             <Button
               variant="ghost"
               size="icon"
+              className="size-11 touch-manipulation sm:size-9"
               onClick={handleThemeToggle}
               data-testid="button-theme-toggle"
               aria-label="Toggle theme"
@@ -198,6 +209,12 @@ export default function Header({ title = "Dashboard" }: HeaderProps) {
         </div>
       </header>
 
+      {isSearchEnabledRoute && (
+        <div className="border-b border-border/60 px-3 pb-3 dark:border-white/10 md:hidden">
+          {searchField}
+        </div>
+      )}
+
       {/* Configuration Alert Banner */}
       {config && !config.igdb.configured && (
         <Alert variant="destructive" className="rounded-none border-x-0 border-t-0 border-b-1">
@@ -207,7 +224,7 @@ export default function Header({ title = "Dashboard" }: HeaderProps) {
             IGDB credentials are required. The application will only function for existing games
             until configured.
             <Link href="/settings">
-              <span className="underline font-bold cursor-pointer hover:text-white">
+              <span className="cursor-pointer font-bold underline hover:text-foreground">
                 Configure in Settings
               </span>
             </Link>
