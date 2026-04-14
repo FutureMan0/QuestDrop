@@ -49,8 +49,9 @@ import { hashPassword, comparePassword, generateToken, authenticateToken } from 
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { getFilesystemAllowedRootDirs, pathIsUnderAllowedRoots } from "./filesystem-allowlist.js";
 
-// Root directory for the file system browser; restrict browsing to this tree
+// Root directory for SSL cert paths and other resolves confined to the app tree
 const FILE_BROWSER_ROOT = fs.realpathSync(process.cwd());
 
 // Configure multer for memory storage
@@ -559,7 +560,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     sensitiveEndpointLimiter,
     async (req, res) => {
       try {
-        // Treat the query path as relative to the FILE_BROWSER_ROOT
+        const allowedRoots = getFilesystemAllowedRootDirs();
+        const cwdRoot = allowedRoots[0] ?? FILE_BROWSER_ROOT;
         const rawPath = req.query.path;
 
         // Normalize and validate the user-controlled path input.
@@ -577,28 +579,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ error: "Invalid path parameter" });
         }
 
-        // Basic validation of user-controlled path input before resolving.
-        // Disallow NUL bytes and absolute paths; traversal outside the root
-        // is prevented by the subsequent normalizedRoot checks.
         if (queryPath.includes("\0")) {
           return res.status(403).json({ error: "Access to this path is not allowed" });
         }
-        if (path.isAbsolute(queryPath)) {
+
+        // UI "Go to root" uses "/"; map to app working directory (first allowed root).
+        if (queryPath === "/" || queryPath === "") {
+          queryPath = ".";
+        }
+
+        const resolvedPath = path.isAbsolute(queryPath)
+          ? path.normalize(queryPath)
+          : path.resolve(cwdRoot, queryPath);
+
+        const normalizedResolved = path.normalize(resolvedPath);
+        if (!pathIsUnderAllowedRoots(normalizedResolved, allowedRoots)) {
           return res.status(403).json({ error: "Access to this path is not allowed" });
         }
 
-        // Resolve against the root and normalize
-        const resolvedPath = path.resolve(FILE_BROWSER_ROOT, queryPath);
-
-        const normalizedRoot = FILE_BROWSER_ROOT.endsWith(path.sep)
-          ? FILE_BROWSER_ROOT
-          : FILE_BROWSER_ROOT + path.sep;
-
-        if (resolvedPath !== FILE_BROWSER_ROOT && !resolvedPath.startsWith(normalizedRoot)) {
-          return res.status(403).json({ error: "Access to this path is not allowed" });
-        }
-
-        // Resolve any symbolic links
         let currentPath: string;
         try {
           currentPath = await fs.promises.realpath(resolvedPath);
@@ -610,11 +608,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           throw error;
         }
 
-        if (currentPath !== FILE_BROWSER_ROOT && !currentPath.startsWith(normalizedRoot)) {
+        if (!pathIsUnderAllowedRoots(currentPath, allowedRoots)) {
           return res.status(403).json({ error: "Access to this path is not allowed" });
         }
 
-        // Basic security check: ensure path exists
         if (!fs.existsSync(currentPath)) {
           return res.status(404).json({ error: "Path not found" });
         }
@@ -640,11 +637,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
             }
 
-            const relativePath = path.relative(FILE_BROWSER_ROOT, fullPath);
-
             return {
               name: entry.name,
-              path: relativePath,
+              path: fullPath,
               isDirectory,
               size: 0,
             };
@@ -659,22 +654,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return a.isDirectory ? -1 : 1;
         });
         const parentPath = path.dirname(currentPath);
-        const parentRelativePath = path.relative(FILE_BROWSER_ROOT, parentPath);
+        const parentHasAllowedAncestor =
+          parentPath !== currentPath && pathIsUnderAllowedRoots(parentPath, allowedRoots);
 
-        // Only return parent if it's different (not root)
-        const parent =
-          parentPath !== currentPath
-            ? {
-                name: "..",
-                path: parentRelativePath,
-                isDirectory: true,
-                size: 0,
-              }
-            : null;
-        const currentRelativePath = path.relative(FILE_BROWSER_ROOT, currentPath);
+        const parent = parentHasAllowedAncestor
+          ? {
+              name: "..",
+              path: parentPath,
+              isDirectory: true,
+              size: 0,
+            }
+          : null;
 
         res.json({
-          path: currentRelativePath,
+          path: currentPath,
           parent,
           files,
         });
@@ -1159,7 +1152,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const limitNum = limit ? Math.min(Math.max(parseInt(String(limit), 10) || 20, 1), 60) : 20;
         const mediaPreference =
-          media === "box-3d" || media === "cartridge" || media === "screenshot" || media === "box-2d"
+          media === "box-3d" ||
+          media === "cartridge" ||
+          media === "screenshot" ||
+          media === "box-2d"
             ? media
             : "box-2d";
 

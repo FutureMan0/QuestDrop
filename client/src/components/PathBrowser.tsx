@@ -44,13 +44,13 @@ export function PathBrowser({
   extensions,
   selectDirectories = false,
 }: PathBrowserProps) {
-  const [currentPath, setCurrentPath] = useState("/");
+  const [currentPath, setCurrentPath] = useState(".");
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
 
   // Initialize path when dialog opens
   useEffect(() => {
     if (isOpen) {
-      let pathToShow = initialPath || "/";
+      let pathToShow = initialPath || ".";
       if (initialPath) {
         const isWindows = initialPath.includes("\\");
         const separator = isWindows ? "\\" : "/";
@@ -65,7 +65,7 @@ export function PathBrowser({
 
         // Handle root path cases
         if (!pathToShow || (isWindows && pathToShow.endsWith(":"))) {
-          pathToShow = isWindows ? `${parts[0] || "C:"}\\` : "/";
+          pathToShow = isWindows ? `${parts[0] || "C:"}\\` : ".";
         }
       }
 
@@ -156,7 +156,7 @@ export function PathBrowser({
               <div className="text-destructive p-8 text-center flex flex-col items-center gap-2">
                 <ShieldAlert className="h-8 w-8" />
                 <p>Failed to access directory.</p>
-                <Button variant="outline" size="sm" onClick={() => setCurrentPath("/")}>
+                <Button variant="outline" size="sm" onClick={() => setCurrentPath(".")}>
                   Go to Root
                 </Button>
               </div>

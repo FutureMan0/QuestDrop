@@ -70,6 +70,11 @@
       <Name>TZ</Name>
       <Mode/>
     </Variable>
+    <Variable>
+      <Value>/games,/downloads</Value>
+      <Name>QUESTARR_FILESYSTEM_EXTRA_ROOTS</Name>
+      <Mode/>
+    </Variable>
   </Environment>
   <Labels/>
   <Config Name="HTTP Port" Target="5000" Default="5000" Mode="tcp" Description="Web-UI HTTP-Port." Type="Port" Display="always" Required="true" Mask="false">5000</Config>
@@ -81,4 +86,6 @@
   <Config Name="SSL Port" Target="SSL_PORT" Default="9898" Mode="" Description="Interner SSL-Port — muss zum gemappten HTTPS-Port passen." Type="Variable" Display="advanced" Required="false" Mask="false">9898</Config>
   <Config Name="Zeitzone" Target="TZ" Default="Europe/Berlin" Mode="" Description="z. B. Europe/Berlin" Type="Variable" Display="advanced" Required="false" Mask="false">Europe/Berlin</Config>
   <Config Name="Games-Pfad (optional)" Target="/games" Default="/mnt/user/games" Mode="rw" Description="Optional: Host-Ordner für die Spiele-Bibliothek." Type="Path" Display="always" Required="false" Mask="false">/mnt/user/games</Config>
+  <Config Name="Downloads-Pfad (optional)" Target="/downloads" Default="/mnt/user/downloads" Mode="rw" Description="Optional: z. B. für Auto-Import (fertige Downloads). Muss zu QUESTARR_FILESYSTEM_EXTRA_ROOTS passen." Type="Path" Display="always" Required="false" Mask="false">/mnt/user/downloads</Config>
+  <Config Name="Datei-Browser: extra Pfade" Target="QUESTARR_FILESYSTEM_EXTRA_ROOTS" Default="/games,/downloads" Mode="" Description="Kommagetrennte **Container**-Pfade, die in der UI durchsuchbar sind (z. B. `/games,/downloads`). An gemappte Volumes anpassen." Type="Variable" Display="always" Required="false" Mask="false">/games,/downloads</Config>
 </Container>

@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import Dashboard from "../src/components/Dashboard";
 import React from "react";
@@ -16,7 +16,13 @@ vi.mock("@/hooks/use-toast", () => ({
 // Mock fetch for QueryClient
 global.fetch = vi.fn().mockResolvedValue({
   ok: true,
-  json: () => Promise.resolve([]),
+  json: () =>
+    Promise.resolve({
+      recentRequests: [],
+      recentlyAdded: [],
+      trending: [],
+      all: [],
+    }),
 });
 
 const createTestQueryClient = () =>
@@ -44,21 +50,23 @@ describe("Dashboard Configuration", () => {
       </QueryClientProvider>
     );
 
-    // Initial value (default 5)
-    expect(localStorage.getItem("dashboardGridColumns")).toBe("5");
+    // Initial value (default 5) is persisted by effect after mount
+    await waitFor(() => {
+      expect(localStorage.getItem("dashboardGridColumns")).toBe("5");
+    });
 
-    // Click layout settings toggle to show the modal
-    const layoutToggle = screen.getByLabelText("Toggle layout settings");
+    // Click layout button to show the modal
+    const layoutToggle = screen.getByRole("button", { name: "Layout" });
     fireEvent.click(layoutToggle);
 
     // Verify modal is shown (searching for title)
-    expect(screen.getByText("Display Settings")).toBeDefined();
+    expect(screen.getByText("Display Settings")).toBeInTheDocument();
 
     // Change setting in localStorage manually to simulate preference change
     localStorage.setItem("dashboardGridColumns", "8");
   });
 
-  it("should load grid column preference from local storage on mount", () => {
+  it("should load grid column preference from local storage on mount", async () => {
     localStorage.setItem("dashboardGridColumns", "7");
 
     const queryClient = createTestQueryClient();
@@ -72,6 +80,8 @@ describe("Dashboard Configuration", () => {
 
     // We can't easily see the internal state of Dashboard,
     // but we can check if it stays '7' in localStorage (it shouldn't overwrite with '5')
-    expect(localStorage.getItem("dashboardGridColumns")).toBe("7");
+    await waitFor(() => {
+      expect(localStorage.getItem("dashboardGridColumns")).toBe("7");
+    });
   });
 });

@@ -29,10 +29,12 @@ services:
       PGID: ${PGID:-1000}
       SQLITE_DB_PATH: /app/data/sqlite.db
       SSL_PORT: ${SSL_PORT:-9898}
+      QUESTARR_FILESYSTEM_EXTRA_ROOTS: ${QUESTARR_FILESYSTEM_EXTRA_ROOTS:-/games,/downloads}
     volumes:
       - ${QUESTARR_MORE_DATA:-/mnt/user/appdata/questarr-more}:/app/data
       # Zusätzliche Mounts (Pfade bei Bedarf in .env überschreiben)
       - ${QUESTARR_MORE_GAMES:-/mnt/user/games}:/games
+      - ${QUESTARR_MORE_DOWNLOADS:-/mnt/user/downloads}:/downloads
     healthcheck:
       test:
         [

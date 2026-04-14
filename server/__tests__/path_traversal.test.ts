@@ -107,6 +107,15 @@ describe("Path Traversal Vulnerability in Routes", () => {
     expect(response.body.error).toMatch(/Access to this path is not allowed/);
   });
 
+  it("should block absolute paths outside allowlist in /api/system/filesystem", async () => {
+    const app = await createApp();
+
+    const response = await request(app).get("/api/system/filesystem?path=/etc/passwd");
+
+    expect(response.status).toBe(403);
+    expect(response.body.error).toMatch(/Access to this path is not allowed/);
+  });
+
   it("should block path traversal in /api/settings/ssl for certPath", async () => {
     const app = await createApp();
 

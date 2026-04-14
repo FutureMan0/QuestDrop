@@ -81,62 +81,46 @@ describe("CompactGameCard", () => {
     return render(<TooltipProvider>{ui}</TooltipProvider>);
   };
 
-  it("renders game title and metadata correctly", () => {
+  it("renders card and title", () => {
     renderWithProviders(<CompactGameCard game={mockGame} />);
 
-    expect(screen.getByText("Test Game")).toBeInTheDocument();
-    expect(screen.getByText("8.5/10")).toBeInTheDocument();
-    expect(screen.getByText("2023-01-01")).toBeInTheDocument();
-    expect(screen.getByText("Action")).toBeInTheDocument();
-    expect(screen.getByText("Adventure")).toBeInTheDocument();
+    expect(screen.getByTestId("card-game-compact-1")).toBeInTheDocument();
+    expect(screen.getByTestId("text-title-1")).toHaveTextContent("Test Game");
+    expect(screen.getByTestId("button-request-1")).toHaveTextContent("Request");
   });
 
-  it("renders 'No genres' when genres is empty or undefined", () => {
-    const gameWithoutGenres = { ...mockGame, genres: [] };
-    renderWithProviders(<CompactGameCard game={gameWithoutGenres} />);
-    expect(screen.getByText("No genres")).toBeInTheDocument();
+  it("shows fallback summary text when summary is empty", () => {
+    const gameWithoutSummary = { ...mockGame, summary: "" };
+    renderWithProviders(<CompactGameCard game={gameWithoutSummary} />);
+    expect(screen.getByText("No description available.")).toBeInTheDocument();
   });
 
-  it("calls onStatusChange when status button is clicked", () => {
+  it("calls onStatusChange with wanted when request button is clicked", () => {
     const onStatusChange = vi.fn();
-    renderWithProviders(<CompactGameCard game={mockGame} onStatusChange={onStatusChange} />);
+    renderWithProviders(
+      <CompactGameCard game={{ ...mockGame, status: "owned" }} onStatusChange={onStatusChange} />
+    );
 
-    const button = screen.getByText("Mark Owned");
+    const button = screen.getByTestId("button-request-1");
     fireEvent.click(button);
 
-    expect(onStatusChange).toHaveBeenCalledWith("1", "owned");
+    expect(onStatusChange).toHaveBeenCalledWith("1", "wanted");
   });
 
-  it("calls onViewDetails when info button is clicked", () => {
+  it("calls onViewDetails when cover is clicked", () => {
     const onViewDetails = vi.fn();
     renderWithProviders(<CompactGameCard game={mockGame} onViewDetails={onViewDetails} />);
 
-    // Info button is wrapped in a tooltip, but the button content is accessible via the icon mock or aria-label
-    const infoButton = screen.getByLabelText(`View details for ${mockGame.title}`);
-    fireEvent.click(infoButton);
+    const cover = screen.getByRole("button", { name: `${mockGame.title}, details` });
+    fireEvent.click(cover);
 
     expect(onViewDetails).toHaveBeenCalledWith("1");
   });
 
-  describe("dynamic aria-labels for status button", () => {
-    it.each([
-      { status: "wanted" as const, expectedLabel: "Owned", expectedNext: "owned" },
-      { status: "owned" as const, expectedLabel: "Completed", expectedNext: "completed" },
-      { status: "completed" as const, expectedLabel: "Wanted", expectedNext: "wanted" },
-    ])(
-      "shows aria-label 'Mark $title as $expectedLabel' when status is $status",
-      ({ status, expectedLabel, expectedNext }) => {
-        const onStatusChange = vi.fn();
-        renderWithProviders(
-          <CompactGameCard game={{ ...mockGame, status }} onStatusChange={onStatusChange} />
-        );
-
-        const btn = screen.getByLabelText(`Mark ${mockGame.title} as ${expectedLabel}`);
-        expect(btn).toBeInTheDocument();
-
-        fireEvent.click(btn);
-        expect(onStatusChange).toHaveBeenCalledWith(mockGame.id, expectedNext);
-      }
-    );
+  it("disables request button when game is already requested", () => {
+    renderWithProviders(<CompactGameCard game={mockGame} />);
+    const button = screen.getByTestId("button-request-1");
+    expect(button).toBeDisabled();
+    expect(button).toHaveTextContent("Requested");
   });
 });

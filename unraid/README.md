@@ -154,6 +154,14 @@ Zwei Wege, den Container aus **diesem Repository** zu betreiben.
 - **Git** auf dem Server (z. B. über _Nerd Tools_ / Terminal) oder Repo per SMB auf die Share kopieren und Pfade anpassen.
 - Empfohlener Klon-Pfad: z. B. `/mnt/user/docker/questarr-more` (nur Quellcode; App-Daten liegen getrennt unter `appdata`).
 
+### Auto-Import: Games- und Downloads-Ordner im Container
+
+Wenn du unter **Settings → Folders** den **Source Folder** oder **Library Root** per Datei-Browser wählst, darf die API nur Verzeichnisse listen, die erlaubt sind: das App-Verzeichnis (`/app`) plus alle Pfade aus **`QUESTARR_FILESYSTEM_EXTRA_ROOTS`** (kommagetrennte **Container**-Pfade).
+
+- Im **Unraid-Template** sind standardmäßig **`/games`** und **`/downloads`** vorgesehen — die Variable muss zu deinen **Path Mappings** passen (z. B. Host `/mnt/user/downloads` → Container `/downloads`).
+- Wenn du andere Container-Pfade nutzt, passe **`QUESTARR_FILESYSTEM_EXTRA_ROOTS`** entsprechend an (z. B. `/data/games,/data/incoming`).
+- In der UI kannst du danach z. B. **`/downloads`** oder **`/games`** direkt eintragen und mit **Go** öffnen.
+
 ---
 
 ## Variante A — Docker Compose (empfohlen, ein Befehl)
@@ -182,6 +190,7 @@ Zwei Wege, den Container aus **diesem Repository** zu betreiben.
 export QUESTARR_MORE_DATA=/mnt/user/appdata/questarr-more
 export QUESTARR_MORE_HTTP_PORT=5000
 export QUESTARR_MORE_SSL_PORT=9898
+export QUESTARR_FILESYSTEM_EXTRA_ROOTS="/games,/downloads"
 export PUID=1000
 export PGID=1000
 docker compose -f docker-compose.unraid.yml up -d --build
@@ -224,12 +233,12 @@ sh scripts/unraid-update.sh
 
 ### GitHub Secrets (Repository → Settings → Secrets and variables → Actions)
 
-| Secret | Inhalt |
-|--------|--------|
-| `UNRAID_HOST` | IP oder Hostname (z. B. `10.0.0.121` oder Tailscale-Name) |
-| `UNRAID_USER` | z. B. `root` |
-| `UNRAID_SSH_KEY` | **Privater** SSH-Key (komplette Datei inkl. `BEGIN`/`END`) |
-| `UNRAID_REPO_PATH` | *(optional)* Absoluter Pfad zum Checkout; Standard im Workflow: `/mnt/user/docker/questarr-more` |
+| Secret             | Inhalt                                                                                           |
+| ------------------ | ------------------------------------------------------------------------------------------------ |
+| `UNRAID_HOST`      | IP oder Hostname (z. B. `10.0.0.121` oder Tailscale-Name)                                        |
+| `UNRAID_USER`      | z. B. `root`                                                                                     |
+| `UNRAID_SSH_KEY`   | **Privater** SSH-Key (komplette Datei inkl. `BEGIN`/`END`)                                       |
+| `UNRAID_REPO_PATH` | _(optional)_ Absoluter Pfad zum Checkout; Standard im Workflow: `/mnt/user/docker/questarr-more` |
 
 **SSH-Key (Beispiel):** Auf dem PC `ssh-keygen -t ed25519 -f ~/.ssh/unraid_questarr_deploy -N ""`, Public Key nach Unraid (`ssh-copy-id` oder manuell in `~/.ssh/authorized_keys`), **privaten** Key als `UNRAID_SSH_KEY` hinterlegen.
 
