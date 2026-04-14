@@ -6,12 +6,19 @@ Das Template nutzt **nur** ein **selbst gebautes** Image. Unraid lädt **nichts*
 
 **Einmalig auf dem Unraid-Terminal oder per SSH:**
 
+Der Ordner `/mnt/user/docker` existiert auf Unraid nicht von selbst — anlegen oder einen anderen Pfad nutzen (z. B. `/mnt/user/appdata`).
+
 ```bash
+mkdir -p /mnt/user/docker
 cd /mnt/user/docker
 git clone https://github.com/FutureMan0/Questarr-More.git questarr-more
 cd questarr-more
 docker build -t questarr-more:local .
 ```
+
+**Alternativ** (ohne `docker`-Ordner): `cd ~` — nach dem Fehlversuch mit `cd /mnt/user/docker` landet das Repo oft in `~/questarr-more`; dort einfach `docker build -t questarr-more:local .` ausführen.
+
+Nach `git pull` zur Aktualisierung: erneut `docker build -t questarr-more:local .` (damit u. a. `package-lock.json` und der Build stimmen).
 
 Prüfen:
 
