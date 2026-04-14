@@ -60,12 +60,15 @@ RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh
 
 EXPOSE 5000
 
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD node -e "require('http').get('http://127.0.0.1:5000/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
+
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["npm", "run", "start"]
 
-LABEL org.opencontainers.image.title="Questarr"
-LABEL org.opencontainers.image.description="A video game management application inspired by the -Arr apps. Track and organize your video game collection with automated discovery and download management."
-LABEL org.opencontainers.image.authors="Doezer"
-LABEL org.opencontainers.image.source="https://github.com/Doezer/questarr"
+LABEL org.opencontainers.image.title="Questarr More"
+LABEL org.opencontainers.image.description="Extended video game library manager (Questarr fork): discovery, downloads, request list, optional auto-import."
+LABEL org.opencontainers.image.authors="Doezer, FutureMan0"
+LABEL org.opencontainers.image.source="https://github.com/FutureMan0/Questarr-More"
 LABEL org.opencontainers.image.licenses="GPL-3.0-or-later"
-LABEL org.opencontainers.image.version="1.2.2"
+LABEL org.opencontainers.image.version="2.0.0"

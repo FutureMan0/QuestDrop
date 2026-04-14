@@ -9,16 +9,18 @@
   <Support>https://github.com/FutureMan0/Questarr-More/issues</Support>
   <Project>https://github.com/FutureMan0/Questarr-More</Project>
   <Overview>
-    Questarr More — erweiterter Spiel-Bibliotheksmanager (Fork/Build aus Git).
-    **Vor dem ersten Start:** Im geklonten Repo auf Unraid ausführen: `docker build -t questarr-more:local .`
-    (siehe `unraid/README.md` oder `docker-compose.unraid.yml`).
-    Das Image wird **nicht** von einer Registry geladen (`--pull=never`).
+    **Zwingend vor „Apply“:** Image lokal bauen, sonst: `No such image: questarr-more:local`.
+    Auf Unraid (Terminal/SSH), nachdem das Repo geklont ist:
+    `cd /mnt/user/docker/questarr-more &amp;&amp; docker build -t questarr-more:local .`
+    Prüfen: `docker images | grep questarr-more`
+    Erst dann dieses Template anwenden. Es gibt **kein** Pull von einer Registry (`--pull=never`).
+    Details: GitHub → `unraid/README.md`
   </Overview>
   <Category>MediaApp:</Category>
   <WebUI>http://[IP]:[PORT:5000]/</WebUI>
   <TemplateURL>https://raw.githubusercontent.com/FutureMan0/Questarr-More/main/unraid/questarr-more.xml</TemplateURL>
   <Icon>https://raw.githubusercontent.com/Doezer/Questarr/images/Questarr_icon.png</Icon>
-  <ExtraParams>--pull=never --restart=unless-stopped --health-cmd="node -e \"require('http').get('http://localhost:5000/api/health', (r) =&gt; process.exit(r.statusCode === 200 ? 0 : 1))\"" --health-interval=30s --health-timeout=10s --health-retries=3 --health-start-period=40s</ExtraParams>
+  <ExtraParams>--pull=never --restart=unless-stopped</ExtraParams>
   <Description>
     Questarr More: Discovery, Bibliothek, Request-Liste, Downloader, optional Auto-Import, RSS/xREL, Light/Dark &amp; Mobile-UI.
     Dieses Template erwartet ein **lokal gebautes** Image `questarr-more:local` aus deinem Git-Checkout.

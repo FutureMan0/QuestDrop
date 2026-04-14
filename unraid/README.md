@@ -1,5 +1,31 @@
 # Unraid: Questarr More aus dem Git-Projekt
 
+## Fehler: `No such image: questarr-more:local`
+
+Das Template nutzt **nur** ein **selbst gebautes** Image. Unraid lädt **nichts** von Docker Hub/GHCR dafür.
+
+**Einmalig auf dem Unraid-Terminal oder per SSH:**
+
+```bash
+cd /mnt/user/docker
+git clone https://github.com/FutureMan0/Questarr-More.git questarr-more
+cd questarr-more
+docker build -t questarr-more:local .
+```
+
+Prüfen:
+
+```bash
+docker images | grep questarr-more
+# questarr-more   local   …
+```
+
+Erst danach im Unraid-Docker-UI **Add Container** → Template **Questarr-More** → **Apply**.
+
+Ohne Build: nutze stattdessen **`docker compose -f docker-compose.unraid.yml up -d --build`** (baut und startet in einem Schritt).
+
+---
+
 ## „Ich sehe das Template in der Liste nicht“
 
 **Normal.** Unraid holt **keine** Templates automatisch von GitHub. Die Dropdown-Liste **User templates** zeigt nur XML-Dateien, die **auf deinem Unraid-Server** liegen (plus ggf. Einträge von Plugins).
