@@ -13,6 +13,75 @@ Wenn du stattdessen **lokal aus Git** bauen willst, siehe unten **„Lokales Ima
 
 ---
 
+## Schritt-für-Schritt: Umstieg auf GHCR und künftig nur „Update“ im Docker-UI
+
+Führe die folgenden Schritte **einmal** aus. Danach reicht nach jedem Push auf **`main`**: kurz warten, bis GitHub Actions das Image gebaut hat, dann im Unraid-Docker auf **Update** tippen.
+
+### Schritt 1 — GitHub: Image existiert und ist ziehbar
+
+1. Im Browser: Repository **FutureMan0/Questarr-More** öffnen → Tab **Actions**.
+2. Den Workflow **„Publish to GHCR (main)“** anwählen und prüfen, dass der letzte Lauf für **`main`** **grün** abgeschlossen ist.
+3. **Paket-Sichtbarkeit (wichtig für Unraid ohne Login):**
+   - GitHub → Profil-Menü → **Packages** (oder im Repo unter **Packages** auf **`questarr-more`** klicken).
+   - Paket **questarr-more** öffnen → **Package settings** (Paket-Einstellungen).
+   - **Change visibility** / Sichtbarkeit auf **Public** stellen, **wenn** Unraid das Image **ohne** `docker login` ziehen soll.
+   - **Privat** lassen ist ok, dann ist **Schritt 4** (Login) Pflicht.
+
+### Schritt 2 — Unraid: Template-XML mit GHCR neu laden
+
+1. Auf dem Unraid-Server **Terminal** oder **SSH** öffnen (als User mit Schreibrechten auf die Flash-Konfiguration).
+2. Ordner anlegen (schadet nicht, falls er schon da ist):
+
+   ```bash
+   mkdir -p /boot/config/plugins/dockerMan/templates-user
+   ```
+
+3. Aktuelle Vorlage von GitHub holen (**URL anpassen**, falls du ein Fork-/anderes Repo nutzt):
+
+   ```bash
+   curl -fsSL -o /boot/config/plugins/dockerMan/templates-user/questarr-more.xml \
+     "https://raw.githubusercontent.com/FutureMan0/Questarr-More/main/unraid/questarr-more.xml"
+   ```
+
+4. Unraid: **Docker** öffnen, Seite **neu laden** (F5), damit die Template-Liste die neue XML sieht.
+
+### Schritt 3 — Bestehenden Container von `questarr-more:local` auf GHCR umstellen
+
+**Variante A — Container bearbeiten (Daten & Ports bleiben erhalten)**
+
+1. Unraid: **Docker** → Container **Questarr-More** auswählen → **Edit** / **Bearbeiten**.
+2. Feld **Repository** (oder **Docker Hub** / Image-Zeile) auf genau diesen Wert setzen:
+
+   `ghcr.io/futureman0/questarr-more:latest`
+
+3. Prüfen, dass **kein** `--pull=never` mehr in den **Extra Parameters** steht (sonst zieht Unraid beim Update ggf. kein neues Image). Entfernen, falls noch vorhanden.
+4. **Apply** / **Anwenden** — Unraid lädt das Image (bei Fehlern wegen Auth zuerst **Schritt 4**) und startet den Container neu.
+5. Web-UI testen: `http://<UNRAID-IP>:5000` (oder dein gewählter HTTP-Port).
+
+**Variante B — Neu aus Template (wenn du lieber frisch anlegst)**
+
+1. Alten Container **stoppen**, optional **entfernen** (nur wenn du weißt, dass **App-Daten** weiterhin auf dem Host unter z. B. `/mnt/user/appdata/questarr-more` liegen — die bleiben auf der Platte, wenn du den **Daten-Pfad** im neuen Container gleich wählst).
+2. **Add Container** → **User templates** → **Questarr-More** → Pfade/Ports wie zuvor eintragen → **Apply**.
+
+### Schritt 4 — Nur bei privatem GHCR-Paket: einmalig anmelden
+
+Auf dem Unraid-Terminal oder per SSH:
+
+```bash
+docker login ghcr.io -u DEIN_GITHUB_USERNAME
+```
+
+Als Passwort einen **GitHub Personal Access Token (classic)** mit mindestens der Berechtigung **`read:packages`** eingeben (nicht dein GitHub-Passwort).
+
+### Schritt 5 — Ab jetzt: Updates nur noch im Docker-UI
+
+1. Wenn du lokal entwickelt hast: Änderungen nach **`main`** pushen.
+2. Auf GitHub unter **Actions** warten, bis **„Publish to GHCR (main)“** für diesen Commit **fertig** ist.
+3. Auf Unraid: **Docker** → **Questarr-More** → **Update** / **Aktualisieren** (Bezeichnung je nach Unraid-Version; ggf. über das **⋯**-Menü am Container).
+4. Fertig — kein `git pull` und kein `docker build` auf dem Unraid nötig.
+
+---
+
 ## Lokales Image (`questarr-more:local`)
 
 Nur nötig, wenn du **kein** GHCR-Image verwendest und das Image selbst baust. Unraid meldet sonst z. B. `No such image: questarr-more:local`.
