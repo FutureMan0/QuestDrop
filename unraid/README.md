@@ -209,7 +209,7 @@ sh scripts/unraid-update.sh
 
 **Einfachste Variante:** Siehe oben **„Ein Klick: Update im Docker-UI“** — GitHub baut bei Push auf `main` das GHCR-Image (**`.github/workflows/publish-ghcr-main.yml`**); auf Unraid reicht **Update** am Container.
 
-**Optional (SSH auf den Server):** Wenn du nach jedem Push stattdessen **direkt auf dem Unraid** `git pull` und **lokal** bauen willst, nutzt das Repo **`.github/workflows/deploy-unraid.yml`**. Er ruft **`scripts/unraid-update.sh`** auf (Git pull, `docker compose build`, `up -d --force-recreate`).
+**Optional (SSH auf den Server):** Wenn du **direkt auf dem Unraid** `git pull` und **lokal** bauen willst, nutzt das Repo **`.github/workflows/deploy-unraid.yml`**. Er ruft **`scripts/unraid-update.sh`** auf (Git pull, `docker compose build`, `up -d --force-recreate`). **Standard:** nur manuell unter **Actions → Deploy to Unraid → Run workflow** — damit fehlen keine Secrets und die übrige CI nicht rot wird. **Auto bei Push auf `main`:** in der YAML den auskommentierten `push:`-Block aktivieren, sobald `UNRAID_*` gesetzt sind.
 
 ### Voraussetzungen auf Unraid
 

@@ -13,15 +13,16 @@
 #   ssh-copy-id -i ~/.ssh/unraid_questarr_deploy.pub root@UNRAID_IP
 #   cat ~/.ssh/unraid_questarr_deploy | als Secret UNRAID_SSH_KEY einfügen
 #
-# Ohne diese Secrets schlägt der Workflow fehl — bis zur Einrichtung nur workflow_dispatch
-# testen oder den Workflow temporär deaktivieren.
+# Ohne diese Secrets den Job nicht starten — sonst rote CI bei jedem Push.
+# Optional: bei gesetztem Secret UNRAID_HOST zusätzlich push auf main triggern (siehe unten).
 
 name: Deploy to Unraid
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+  # Nach Einrichtung von UNRAID_* Secrets auskommentieren für Auto-Deploy bei Push:
+  # push:
+  #   branches: [main]
 
 concurrency:
   group: deploy-unraid
