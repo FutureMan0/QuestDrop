@@ -35,6 +35,28 @@ export interface IGDBGame {
     developer: boolean;
     publisher: boolean;
   }>;
+  collection?: {
+    id: number;
+    name: string;
+  };
+  franchises?: Array<{
+    id: number;
+    name: string;
+  }>;
+}
+
+interface DiscoverStudio {
+  id: string;
+  name: string;
+  coverUrl: string;
+  gameCount: number;
+}
+
+interface DiscoverCollection {
+  id: string;
+  name: string;
+  coverUrl: string;
+  gameCount: number;
 }
 
 interface IGDBAuthResponse {
@@ -262,16 +284,16 @@ class IGDBClient {
     // Try multiple search approaches to maximize results
     const searchApproaches = [
       // Approach 1: Full text search without category filter
-      `search "${sanitizedQuery}"; fields name, summary, cover.url, first_release_date, rating, platforms.name, genres.name, screenshots.url, involved_companies.company.name, involved_companies.developer, involved_companies.publisher; limit ${limit};`,
+      `search "${sanitizedQuery}"; fields name, summary, cover.url, first_release_date, rating, platforms.name, genres.name, screenshots.url, involved_companies.company.name, involved_companies.developer, involved_companies.publisher, collection.name, franchises.name; limit ${limit};`,
 
       // Approach 2: Full text search with category filter
-      `search "${sanitizedQuery}"; fields name, summary, cover.url, first_release_date, rating, platforms.name, genres.name, screenshots.url, involved_companies.company.name, involved_companies.developer, involved_companies.publisher; where category = 0; limit ${limit};`,
+      `search "${sanitizedQuery}"; fields name, summary, cover.url, first_release_date, rating, platforms.name, genres.name, screenshots.url, involved_companies.company.name, involved_companies.developer, involved_companies.publisher, collection.name, franchises.name; where category = 0; limit ${limit};`,
 
       // Approach 3: Case-insensitive name matching without category
-      `fields name, summary, cover.url, first_release_date, rating, platforms.name, genres.name, screenshots.url, involved_companies.company.name, involved_companies.developer, involved_companies.publisher; where name ~= "${sanitizedQuery}"; limit ${limit};`,
+      `fields name, summary, cover.url, first_release_date, rating, platforms.name, genres.name, screenshots.url, involved_companies.company.name, involved_companies.developer, involved_companies.publisher, collection.name, franchises.name; where name ~= "${sanitizedQuery}"; limit ${limit};`,
 
       // Approach 4: Partial name matching without category
-      `fields name, summary, cover.url, first_release_date, rating, platforms.name, genres.name, screenshots.url, involved_companies.company.name, involved_companies.developer, involved_companies.publisher; where name ~ *"${sanitizedQuery}"*; sort rating desc; limit ${limit};`,
+      `fields name, summary, cover.url, first_release_date, rating, platforms.name, genres.name, screenshots.url, involved_companies.company.name, involved_companies.developer, involved_companies.publisher, collection.name, franchises.name; where name ~ *"${sanitizedQuery}"*; sort rating desc; limit ${limit};`,
     ];
 
     for (let i = 0; i < searchApproaches.length && attemptCount < MAX_SEARCH_ATTEMPTS; i++) {
@@ -331,7 +353,7 @@ class IGDBClient {
           const sanitizedWord = sanitizeIgdbInput(word);
           if (!sanitizedWord) return [];
 
-          const wordQuery = `fields name, summary, cover.url, first_release_date, rating, platforms.name, genres.name, screenshots.url, involved_companies.company.name, involved_companies.developer, involved_companies.publisher; where name ~ *"${sanitizedWord}"*; sort rating desc; limit ${limit};`;
+          const wordQuery = `fields name, summary, cover.url, first_release_date, rating, platforms.name, genres.name, screenshots.url, involved_companies.company.name, involved_companies.developer, involved_companies.publisher, collection.name, franchises.name; where name ~ *"${sanitizedWord}"*; sort rating desc; limit ${limit};`;
           // Cache word search results for 15 minutes
           return await this.makeRequest<IGDBGame[]>("games", wordQuery, 15 * 60 * 1000);
         } catch (error) {
@@ -463,7 +485,7 @@ class IGDBClient {
     if (!(await this.ensureConfigured())) return null;
 
     const igdbQuery = `
-      fields name, summary, cover.url, first_release_date, rating, platforms.name, genres.name, screenshots.url, involved_companies.company.name, involved_companies.developer, involved_companies.publisher;
+      fields name, summary, cover.url, first_release_date, rating, platforms.name, genres.name, screenshots.url, involved_companies.company.name, involved_companies.developer, involved_companies.publisher, collection.name, franchises.name;
       where id = ${id};
     `;
 
@@ -503,7 +525,7 @@ class IGDBClient {
       const batch = chunks.slice(i, i + rateLimit);
       const promises = batch.map((chunk) => {
         const igdbQuery = `
-        fields name, summary, cover.url, first_release_date, rating, platforms.name, genres.name, screenshots.url, involved_companies.company.name, involved_companies.developer, involved_companies.publisher;
+        fields name, summary, cover.url, first_release_date, rating, platforms.name, genres.name, screenshots.url, involved_companies.company.name, involved_companies.developer, involved_companies.publisher, collection.name, franchises.name;
         where id = (${chunk.join(",")});
         limit 100;
       `;
@@ -532,7 +554,7 @@ class IGDBClient {
     if (!(await this.ensureConfigured())) return [];
 
     const igdbQuery = `
-      fields name, summary, cover.url, first_release_date, rating, platforms.name, genres.name, screenshots.url, involved_companies.company.name, involved_companies.developer, involved_companies.publisher;
+      fields name, summary, cover.url, first_release_date, rating, platforms.name, genres.name, screenshots.url, involved_companies.company.name, involved_companies.developer, involved_companies.publisher, collection.name, franchises.name;
       where rating > 80 & rating_count > 10;
       sort rating desc;
       limit ${limit};
@@ -549,7 +571,7 @@ class IGDBClient {
     const now = Math.floor(Date.now() / 1000);
 
     const igdbQuery = `
-      fields name, summary, cover.url, first_release_date, rating, platforms.name, genres.name, screenshots.url, involved_companies.company.name, involved_companies.developer, involved_companies.publisher;
+      fields name, summary, cover.url, first_release_date, rating, platforms.name, genres.name, screenshots.url, involved_companies.company.name, involved_companies.developer, involved_companies.publisher, collection.name, franchises.name;
       where first_release_date >= ${thirtyDaysAgo} & first_release_date <= ${now};
       sort first_release_date desc;
       limit ${limit};
@@ -566,7 +588,7 @@ class IGDBClient {
     const sixMonthsFromNow = Math.floor((Date.now() + 6 * 30 * 24 * 60 * 60 * 1000) / 1000);
 
     const igdbQuery = `
-      fields name, summary, cover.url, first_release_date, rating, platforms.name, genres.name, screenshots.url, involved_companies.company.name, involved_companies.developer, involved_companies.publisher;
+      fields name, summary, cover.url, first_release_date, rating, platforms.name, genres.name, screenshots.url, involved_companies.company.name, involved_companies.developer, involved_companies.publisher, collection.name, franchises.name;
       where first_release_date >= ${now} & first_release_date <= ${sixMonthsFromNow};
       sort first_release_date asc;
       limit ${limit};
@@ -602,7 +624,7 @@ class IGDBClient {
     const excludeCondition = excludeIds.length > 0 ? ` & id != (${excludeIds.join(",")})` : "";
 
     const igdbQuery = `
-      fields name, summary, cover.url, first_release_date, rating, platforms.name, genres.name, screenshots.url, involved_companies.company.name, involved_companies.developer, involved_companies.publisher;
+      fields name, summary, cover.url, first_release_date, rating, platforms.name, genres.name, screenshots.url, involved_companies.company.name, involved_companies.developer, involved_companies.publisher, collection.name, franchises.name;
       where (${genreCondition}) & rating > ${HIGH_RATING_THRESHOLD} & rating_count > ${HIGH_RATING_COUNT}${excludeCondition};
       sort rating desc;
       limit ${limit};
@@ -656,7 +678,7 @@ class IGDBClient {
     const excludeCondition = excludeIds.length > 0 ? ` & id != (${excludeIds.join(",")})` : "";
 
     const igdbQuery = `
-      fields name, summary, cover.url, first_release_date, rating, platforms.name, genres.name, screenshots.url, involved_companies.company.name, involved_companies.developer, involved_companies.publisher;
+      fields name, summary, cover.url, first_release_date, rating, platforms.name, genres.name, screenshots.url, involved_companies.company.name, involved_companies.developer, involved_companies.publisher, collection.name, franchises.name;
       where (${platformCondition}) & rating > ${HIGH_RATING_THRESHOLD} & rating_count > ${HIGH_RATING_COUNT}${excludeCondition};
       sort rating desc;
       limit ${limit};
@@ -763,7 +785,7 @@ class IGDBClient {
     const validOffset = Math.min(Math.max(0, offset), MAX_OFFSET);
 
     const igdbQuery = `
-      fields name, summary, cover.url, first_release_date, rating, platforms.name, genres.name, screenshots.url, involved_companies.company.name, involved_companies.developer, involved_companies.publisher;
+      fields name, summary, cover.url, first_release_date, rating, platforms.name, genres.name, screenshots.url, involved_companies.company.name, involved_companies.developer, involved_companies.publisher, collection.name, franchises.name;
       where genres.name ~ *"${cleanGenre}"* & rating > ${MIN_RATING_THRESHOLD} & rating_count > ${MIN_RATING_COUNT};
       sort rating desc;
       limit ${validLimit};
@@ -795,7 +817,7 @@ class IGDBClient {
     const validOffset = Math.min(Math.max(0, offset), MAX_OFFSET);
 
     const igdbQuery = `
-      fields name, summary, cover.url, first_release_date, rating, platforms.name, genres.name, screenshots.url, involved_companies.company.name, involved_companies.developer, involved_companies.publisher;
+      fields name, summary, cover.url, first_release_date, rating, platforms.name, genres.name, screenshots.url, involved_companies.company.name, involved_companies.developer, involved_companies.publisher, collection.name, franchises.name;
       where platforms.name ~ *"${cleanPlatform}"* & rating > ${MIN_RATING_THRESHOLD} & rating_count > ${MIN_RATING_COUNT};
       sort rating desc;
       limit ${validLimit};
@@ -857,6 +879,143 @@ class IGDBClient {
     }
   }
 
+  async getGamesByStudio(
+    studio: string,
+    limit: number = 20,
+    offset: number = 0
+  ): Promise<IGDBGame[]> {
+    if (!(await this.ensureConfigured())) return [];
+
+    const cleanStudio = sanitizeIgdbInput(studio);
+    if (!cleanStudio) return [];
+
+    const validLimit = Math.min(Math.max(1, limit), MAX_LIMIT);
+    const validOffset = Math.min(Math.max(0, offset), MAX_OFFSET);
+
+    const igdbQuery = `
+      fields name, summary, cover.url, first_release_date, rating, platforms.name, genres.name, screenshots.url, involved_companies.company.name, involved_companies.developer, involved_companies.publisher, collection.name, franchises.name;
+      where involved_companies.company.name ~ *"${cleanStudio}"* & rating > ${MIN_RATING_THRESHOLD} & rating_count > ${MIN_RATING_COUNT};
+      sort rating desc;
+      limit ${validLimit};
+      offset ${validOffset};
+    `;
+
+    try {
+      return await this.makeRequest<IGDBGame[]>("games", igdbQuery, 60 * 60 * 1000);
+    } catch (error) {
+      console.warn(`IGDB studio search failed for studio: ${studio}`, error);
+      return [];
+    }
+  }
+
+  async getGamesByCollection(
+    collection: string,
+    limit: number = 20,
+    offset: number = 0
+  ): Promise<IGDBGame[]> {
+    if (!(await this.ensureConfigured())) return [];
+
+    const cleanCollection = sanitizeIgdbInput(collection);
+    if (!cleanCollection) return [];
+
+    const validLimit = Math.min(Math.max(1, limit), MAX_LIMIT);
+    const validOffset = Math.min(Math.max(0, offset), MAX_OFFSET);
+
+    const igdbQuery = `
+      fields name, summary, cover.url, first_release_date, rating, platforms.name, genres.name, screenshots.url, involved_companies.company.name, involved_companies.developer, involved_companies.publisher, collection.name, franchises.name;
+      where (collection.name ~ *"${cleanCollection}"* | franchises.name ~ *"${cleanCollection}"*) & rating > ${MIN_RATING_THRESHOLD} & rating_count > ${MIN_RATING_COUNT};
+      sort rating desc;
+      limit ${validLimit};
+      offset ${validOffset};
+    `;
+
+    try {
+      return await this.makeRequest<IGDBGame[]>("games", igdbQuery, 60 * 60 * 1000);
+    } catch (error) {
+      console.warn(`IGDB collection search failed for collection: ${collection}`, error);
+      return [];
+    }
+  }
+
+  async getDiscoverStudios(limit: number = 18): Promise<DiscoverStudio[]> {
+    if (!(await this.ensureConfigured())) return [];
+
+    const sourceGames = await this.getPopularGames(120);
+    const studioMap = new Map<string, DiscoverStudio>();
+
+    sourceGames.forEach((game) => {
+      const developers =
+        game.involved_companies?.filter((entry) => entry.developer).map((entry) => entry.company.name) || [];
+      const publishers =
+        game.involved_companies?.filter((entry) => entry.publisher).map((entry) => entry.company.name) || [];
+      const studioNames = developers.length > 0 ? developers : publishers;
+
+      studioNames.forEach((studioName) => {
+        if (!studioName) return;
+        const key = studioName.toLowerCase();
+        const existing = studioMap.get(key);
+        if (!existing) {
+          studioMap.set(key, {
+            id: key.replace(/[^a-z0-9]+/g, "-"),
+            name: studioName,
+            coverUrl: game.cover?.url
+              ? `https:${game.cover.url.replace("t_thumb", "t_cover_big")}`
+              : "",
+            gameCount: 1,
+          });
+        } else {
+          existing.gameCount += 1;
+          if (!existing.coverUrl && game.cover?.url) {
+            existing.coverUrl = `https:${game.cover.url.replace("t_thumb", "t_cover_big")}`;
+          }
+        }
+      });
+    });
+
+    return Array.from(studioMap.values())
+      .sort((a, b) => b.gameCount - a.gameCount)
+      .slice(0, limit);
+  }
+
+  async getDiscoverCollections(limit: number = 18): Promise<DiscoverCollection[]> {
+    if (!(await this.ensureConfigured())) return [];
+
+    const sourceGames = await this.getPopularGames(140);
+    const collectionMap = new Map<string, DiscoverCollection>();
+
+    sourceGames.forEach((game) => {
+      const collectionNames = [
+        ...(game.collection?.name ? [game.collection.name] : []),
+        ...(game.franchises?.map((franchise) => franchise.name) || []),
+      ];
+
+      collectionNames.forEach((collectionName) => {
+        if (!collectionName) return;
+        const key = collectionName.toLowerCase();
+        const existing = collectionMap.get(key);
+        if (!existing) {
+          collectionMap.set(key, {
+            id: key.replace(/[^a-z0-9]+/g, "-"),
+            name: collectionName,
+            coverUrl: game.cover?.url
+              ? `https:${game.cover.url.replace("t_thumb", "t_cover_big")}`
+              : "",
+            gameCount: 1,
+          });
+        } else {
+          existing.gameCount += 1;
+          if (!existing.coverUrl && game.cover?.url) {
+            existing.coverUrl = `https:${game.cover.url.replace("t_thumb", "t_cover_big")}`;
+          }
+        }
+      });
+    });
+
+    return Array.from(collectionMap.values())
+      .sort((a, b) => b.gameCount - a.gameCount)
+      .slice(0, limit);
+  }
+
   formatGameData(igdbGame: IGDBGame): Record<string, unknown> {
     const releaseDate = igdbGame.first_release_date
       ? new Date(igdbGame.first_release_date * 1000)
@@ -877,6 +1036,10 @@ class IGDBClient {
       rating: igdbGame.rating ? Math.round(igdbGame.rating) / 10 : 0,
       platforms: igdbGame.platforms?.map((p) => p.name) || [],
       genres: igdbGame.genres?.map((g) => g.name) || [],
+      collections: [
+        ...(igdbGame.collection?.name ? [igdbGame.collection.name] : []),
+        ...(igdbGame.franchises?.map((f) => f.name) || []),
+      ],
       publishers:
         igdbGame.involved_companies?.filter((c) => c.publisher).map((c) => c.company.name) || [],
       developers:

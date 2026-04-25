@@ -1,9 +1,8 @@
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { Loader2, Settings2, AlertCircle } from "lucide-react";
 import GameCarouselSection from "@/components/GameCarouselSection";
-import GameGrid from "@/components/GameGrid";
 import { type Game, type Config } from "@shared/schema";
 import { type GameStatus } from "@/components/StatusBadge";
 import { useToast } from "@/hooks/use-toast";
@@ -23,6 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import RssFeedList from "@/components/RssFeedList";
 import RssSettings from "@/components/RssSettings";
 import { Rss } from "lucide-react";
+import GameGrid from "@/components/GameGrid";
 
 interface Genre {
   id: number;
@@ -32,6 +32,20 @@ interface Genre {
 interface Platform {
   id: number;
   name: string;
+}
+
+interface DiscoverStudio {
+  id: string;
+  name: string;
+  coverUrl: string;
+  gameCount: number;
+}
+
+interface DiscoverCollection {
+  id: string;
+  name: string;
+  coverUrl: string;
+  gameCount: number;
 }
 
 // Default genres used as fallback when API fails or returns empty
@@ -60,6 +74,7 @@ const DEFAULT_PLATFORMS: Platform[] = [
 
 // Cache duration for relatively static data (1 hour)
 const STATIC_DATA_STALE_TIME = 1000 * 60 * 60;
+const PLATFORM_PAGE_SIZE = 24;
 
 // 🎨 Palette: Custom SelectTrigger that shows a loading spinner.
 const SelectTriggerWithSpinner = ({
@@ -77,7 +92,9 @@ const SelectTriggerWithSpinner = ({
 
 export default function DiscoverPage() {
   const [selectedGenre, setSelectedGenre] = useState<string>("Adventure");
-  const [selectedPlatform, setSelectedPlatform] = useState<string>("Alle");
+  const [selectedPlatform, setSelectedPlatform] = useState<string>("PC");
+  const [selectedStudio, setSelectedStudio] = useState<string>("");
+  const [selectedCollection, setSelectedCollection] = useState<string>("");
   const [showSettings, setShowSettings] = useState(false);
   const [hideOwned, setHideOwned] = useState<boolean>(() => {
     return localStorage.getItem("discoverHideOwned") === "true";
@@ -89,6 +106,7 @@ export default function DiscoverPage() {
   // ⚡ Bolt: Using the useDebounce hook to limit the frequency of API calls
   const debouncedGenre = useDebounce(selectedGenre, 300);
   const debouncedPlatform = useDebounce(selectedPlatform, 300);
+  const platformSentinelRef = useRef<HTMLDivElement | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -163,7 +181,7 @@ export default function DiscoverPage() {
           return true;
         })
         .map((g: Game) => {
-          const localMatch = g.igdbId != null ? igdbToLocalGameMap.get(g.igdbId) : undefined;
+          const localMatch = igdbToLocalGameMap.get(g.igdbId);
           if (!localMatch) return g;
 
           // Merge local status/identity so card badges and actions reflect real collection state.
@@ -225,6 +243,26 @@ export default function DiscoverPage() {
     enabled: !!config?.igdb.configured,
   });
 
+  const { data: discoverStudios = [] } = useQuery<DiscoverStudio[]>({
+    queryKey: ["/api/igdb/studios"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/igdb/studios?limit=16");
+      return response.json();
+    },
+    staleTime: STATIC_DATA_STALE_TIME,
+    enabled: !!config?.igdb.configured,
+  });
+
+  const { data: discoverCollections = [] } = useQuery<DiscoverCollection[]>({
+    queryKey: ["/api/igdb/collections"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/igdb/collections?limit=16");
+      return response.json();
+    },
+    staleTime: STATIC_DATA_STALE_TIME,
+    enabled: !!config?.igdb.configured,
+  });
+
   // Handle errors with toast notifications
 
   useEffect(() => {
@@ -246,6 +284,18 @@ export default function DiscoverPage() {
       });
     }
   }, [platformsError, toast]);
+
+  useEffect(() => {
+    if (!selectedStudio && discoverStudios.length > 0) {
+      setSelectedStudio(discoverStudios[0].name);
+    }
+  }, [discoverStudios, selectedStudio]);
+
+  useEffect(() => {
+    if (!selectedCollection && discoverCollections.length > 0) {
+      setSelectedCollection(discoverCollections[0].name);
+    }
+  }, [discoverCollections, selectedCollection]);
 
   // Track game mutation (for Discovery games)
 
@@ -516,38 +566,83 @@ export default function DiscoverPage() {
     return filterGames(games);
   }, [debouncedGenre, genres, filterGames]);
 
-  const fetchGamesByPlatform = useCallback(async (): Promise<Game[]> => {
-    if (debouncedPlatform === "Alle") {
-      const response = await apiRequest("GET", "/api/igdb/popular?limit=40");
-      const games = await response.json();
-      return filterGames(games);
-    }
-
-    // Validate selectedPlatform against known platforms before making API call
-    const validPlatforms: Platform[] = platforms.length > 0 ? platforms : DEFAULT_PLATFORMS;
-    const isValidPlatform = validPlatforms.some((p: Platform) => p.name === debouncedPlatform);
-    if (!isValidPlatform) {
-      // This case should ideally not be hit if UI is synced with state
-      return []; // Return empty instead of throwing to prevent crash
-    }
-
+  const fetchGamesByStudio = useCallback(async (): Promise<Game[]> => {
+    if (!selectedStudio) return [];
     const response = await apiRequest(
       "GET",
-      `/api/igdb/platform/${encodeURIComponent(debouncedPlatform)}?limit=20`
+      `/api/igdb/studio/${encodeURIComponent(selectedStudio)}?limit=20`
     );
     const games = await response.json();
     return filterGames(games);
-  }, [debouncedPlatform, platforms, filterGames]);
+  }, [filterGames, selectedStudio]);
+
+  const fetchGamesByCollection = useCallback(async (): Promise<Game[]> => {
+    if (!selectedCollection) return [];
+    const response = await apiRequest(
+      "GET",
+      `/api/igdb/collection/${encodeURIComponent(selectedCollection)}?limit=20`
+    );
+    const games = await response.json();
+    return filterGames(games);
+  }, [filterGames, selectedCollection]);
 
   const {
-    data: allPlatformGames = [],
-    isLoading: isLoadingAllPlatformGames,
-    isFetching: isFetchingAllPlatformGames,
-  } = useQuery<Game[]>({
-    queryKey: ["/api/igdb/platform/all-grid", hiddenIgdbIds.size, hideOwned, hideWanted],
-    queryFn: fetchGamesByPlatform,
-    enabled: !!config?.igdb.configured && debouncedPlatform === "Alle",
+    data: platformPages,
+    isLoading: isLoadingPlatformGames,
+    isFetching: isFetchingPlatformGames,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    refetch: refetchPlatformGames,
+  } = useInfiniteQuery<Game[]>({
+    queryKey: [
+      "/api/igdb/platform/infinite",
+      debouncedPlatform,
+      hiddenIgdbIds.size,
+      hideOwned,
+      hideWanted,
+    ],
+    queryFn: async ({ pageParam = 0 }) => {
+      const validPlatforms: Platform[] = platforms.length > 0 ? platforms : DEFAULT_PLATFORMS;
+      const isValidPlatform = validPlatforms.some((p: Platform) => p.name === debouncedPlatform);
+      if (!isValidPlatform) return [];
+
+      const response = await apiRequest(
+        "GET",
+        `/api/igdb/platform/${encodeURIComponent(debouncedPlatform)}?limit=${PLATFORM_PAGE_SIZE}&offset=${pageParam}`
+      );
+      const games = await response.json();
+      return filterGames(games);
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
+      if (lastPage.length < PLATFORM_PAGE_SIZE) return undefined;
+      return allPages.length * PLATFORM_PAGE_SIZE;
+    },
+    enabled: !!config?.igdb.configured,
   });
+
+  const platformGames = useMemo(
+    () => (platformPages?.pages ? platformPages.pages.flatMap((page) => page) : []),
+    [platformPages]
+  );
+
+  useEffect(() => {
+    if (!hasNextPage || isFetchingNextPage || !platformSentinelRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting) {
+          void fetchNextPage();
+        }
+      },
+      { rootMargin: "220px" }
+    );
+
+    observer.observe(platformSentinelRef.current);
+    return () => observer.disconnect();
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   if (config && !config.igdb.configured) {
     return (
@@ -584,7 +679,7 @@ export default function DiscoverPage() {
                     </p>
                   </div>
 
-                  <TabsList className="border border-border bg-muted/60 dark:border-white/10 dark:bg-slate-900/70">
+                  <TabsList className="border border-white/10 bg-slate-900/70">
                     <TabsTrigger value="igdb">IGDB Discovery</TabsTrigger>
                     <TabsTrigger value="rss" className="gap-2">
                       <Rss className="h-4 w-4" /> RSS Feeds
@@ -652,6 +747,130 @@ export default function DiscoverPage() {
               isDiscovery={true}
             />
 
+            {/* Studios Section */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">Studios</h2>
+              </div>
+              {discoverStudios.length > 0 ? (
+                <div className="overflow-x-auto pb-2" data-testid="discover-studios-row">
+                  <div className="flex min-w-max gap-3">
+                    {discoverStudios.map((studio) => {
+                      const isActive = selectedStudio === studio.name;
+                      return (
+                        <button
+                          key={studio.id}
+                          type="button"
+                          onClick={() => setSelectedStudio(studio.name)}
+                          className={`group relative h-24 w-56 overflow-hidden rounded-xl border text-left transition-all ${
+                            isActive
+                              ? "border-primary shadow-[0_0_20px_hsl(var(--primary)/0.35)]"
+                              : "border-white/10 hover:border-white/25"
+                          }`}
+                        >
+                          {studio.coverUrl ? (
+                            <img
+                              src={studio.coverUrl}
+                              alt=""
+                              className="absolute inset-0 h-full w-full object-cover opacity-35"
+                            />
+                          ) : null}
+                          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 to-slate-900/70" />
+                          <div className="relative flex h-full flex-col justify-end p-3">
+                            <p className="font-semibold text-white">{studio.name}</p>
+                            <p className="text-xs text-slate-300">{studio.gameCount} titles</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-md border p-4 text-sm text-muted-foreground">
+                  No studio data available right now.
+                </div>
+              )}
+              {selectedStudio && (
+                <GameCarouselSection
+                  title={`${selectedStudio} Picks`}
+                  queryKey={[
+                    "/api/igdb/studio",
+                    selectedStudio,
+                    hiddenIgdbIds.size,
+                    hideOwned,
+                    hideWanted,
+                  ]}
+                  queryFn={fetchGamesByStudio}
+                  onStatusChange={handleStatusChange}
+                  onTrackGame={handleTrackGame}
+                  onToggleHidden={handleToggleHidden}
+                  isDiscovery={true}
+                />
+              )}
+            </div>
+
+            {/* Collections Section */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">Collections</h2>
+              </div>
+              {discoverCollections.length > 0 ? (
+                <div className="overflow-x-auto pb-2" data-testid="discover-collections-row">
+                  <div className="flex min-w-max gap-3">
+                    {discoverCollections.map((collection) => {
+                      const isActive = selectedCollection === collection.name;
+                      return (
+                        <button
+                          key={collection.id}
+                          type="button"
+                          onClick={() => setSelectedCollection(collection.name)}
+                          className={`group relative h-24 w-64 overflow-hidden rounded-xl border text-left transition-all ${
+                            isActive
+                              ? "border-primary shadow-[0_0_20px_hsl(var(--primary)/0.35)]"
+                              : "border-white/10 hover:border-white/25"
+                          }`}
+                        >
+                          {collection.coverUrl ? (
+                            <img
+                              src={collection.coverUrl}
+                              alt=""
+                              className="absolute inset-0 h-full w-full object-cover opacity-35"
+                            />
+                          ) : null}
+                          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 to-slate-900/70" />
+                          <div className="relative flex h-full flex-col justify-end p-3">
+                            <p className="font-semibold text-white">{collection.name}</p>
+                            <p className="text-xs text-slate-300">{collection.gameCount} titles</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-md border p-4 text-sm text-muted-foreground">
+                  No collection data available right now.
+                </div>
+              )}
+              {selectedCollection && (
+                <GameCarouselSection
+                  title={`${selectedCollection} Collection`}
+                  queryKey={[
+                    "/api/igdb/collection",
+                    selectedCollection,
+                    hiddenIgdbIds.size,
+                    hideOwned,
+                    hideWanted,
+                  ]}
+                  queryFn={fetchGamesByCollection}
+                  onStatusChange={handleStatusChange}
+                  onTrackGame={handleTrackGame}
+                  onToggleHidden={handleToggleHidden}
+                  isDiscovery={true}
+                />
+              )}
+            </div>
+
             {/* By Genre Section */}
             <div className="space-y-4">
               <div className="flex items-center gap-4">
@@ -692,58 +911,61 @@ export default function DiscoverPage() {
 
             {/* By Platform Section */}
             <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <h2 className="text-xl font-semibold">By Platform</h2>
-                <Select value={selectedPlatform} onValueChange={setSelectedPlatform}>
-                  <SelectTriggerWithSpinner
-                    className="w-[180px]"
-                    data-testid="select-platform"
-                    loading={isFetchingPlatforms}
-                  >
-                    <SelectValue placeholder="Select platform" />
-                  </SelectTriggerWithSpinner>
-                  <SelectContent>
-                    <SelectItem value="Alle">Alle</SelectItem>
-                    {displayPlatforms.map((platform: Platform) => (
-                      <SelectItem key={platform.id} value={platform.name}>
-                        {platform.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              {selectedPlatform === "Alle" ? (
-                <div className="space-y-4">
-                  <h2 className="text-xl font-semibold">Alle Spiele</h2>
-                  <GameGrid
-                    games={allPlatformGames}
-                    onStatusChange={handleStatusChange}
-                    onTrackGame={handleTrackGame}
-                    onToggleHidden={handleToggleHidden}
-                    isDiscovery
-                    isLoading={isLoadingAllPlatformGames}
-                    isFetching={isFetchingAllPlatformGames}
-                    columns={6}
-                  />
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="text-xl font-semibold">By Platform</h2>
+                  {isFetchingPlatforms && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
                 </div>
-              ) : (
-                <GameCarouselSection
-                  title={`${selectedPlatform} Games`}
-                  queryKey={[
-                    "/api/igdb/platform",
-                    debouncedPlatform,
-                    hiddenIgdbIds.size,
-                    hideOwned,
-                    hideWanted,
-                  ]}
-                  queryFn={fetchGamesByPlatform}
-                  onStatusChange={handleStatusChange}
-                  onTrackGame={handleTrackGame}
-                  onToggleHidden={handleToggleHidden}
-                  isDiscovery={true}
-                  loop
-                />
-              )}
+                <div className="overflow-x-auto pb-1" data-testid="platform-chip-slider">
+                  <div className="glass-surface inline-flex min-w-max items-center gap-2 rounded-xl px-2 py-2">
+                    {displayPlatforms.map((platform: Platform) => {
+                      const isSelected = selectedPlatform === platform.name;
+                      return (
+                        <Button
+                          key={platform.id}
+                          type="button"
+                          variant={isSelected ? "default" : "outline"}
+                          size="sm"
+                          className={`rounded-full transition-all duration-300 ${
+                            isSelected
+                              ? "bg-primary text-primary-foreground shadow-[0_0_18px_hsl(var(--primary)/0.45)]"
+                              : ""
+                          }`}
+                          onClick={() => setSelectedPlatform(platform.name)}
+                          data-testid={`platform-chip-${platform.name.toLowerCase().replace(/\s+/g, "-")}`}
+                        >
+                          {platform.name}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+              <GameGrid
+                games={platformGames}
+                onStatusChange={handleStatusChange}
+                onTrackGame={handleTrackGame}
+                onToggleHidden={handleToggleHidden}
+                isDiscovery={true}
+                isLoading={isLoadingPlatformGames}
+                isFetching={isFetchingPlatformGames}
+              />
+              <div className="flex flex-col items-center justify-center gap-2 py-2" ref={platformSentinelRef}>
+                {isFetchingNextPage && (
+                  <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading more {selectedPlatform} games...
+                  </div>
+                )}
+                {!isLoadingPlatformGames && !hasNextPage && platformGames.length > 0 && (
+                  <p className="text-xs text-muted-foreground">No more {selectedPlatform} games available.</p>
+                )}
+              </div>
+              <div className="flex justify-end">
+                <Button variant="outline" size="sm" onClick={() => refetchPlatformGames()}>
+                  Refresh {selectedPlatform}
+                </Button>
+              </div>
             </div>
           </TabsContent>
 

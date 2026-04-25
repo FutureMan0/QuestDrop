@@ -11,6 +11,7 @@ import { Link } from "wouter";
 import type { Config } from "@shared/schema";
 import { Input } from "@/components/ui/input";
 import { useLocation } from "wouter";
+import { EVENTS } from "@/lib/brand";
 
 interface HeaderProps {
   title?: string;
@@ -41,8 +42,6 @@ export default function Header({ title = "Dashboard" }: HeaderProps) {
     "/discover",
     "/library",
     "/downloads",
-    "/calendar",
-    "/wishlist",
   ]);
   const isSearchEnabledRoute = searchableRoutes.has(location);
 
@@ -86,7 +85,7 @@ export default function Header({ title = "Dashboard" }: HeaderProps) {
     const nextUrl = `${window.location.pathname}${newSearch ? `?${newSearch}` : ""}`;
     window.history.replaceState({}, "", nextUrl);
     window.dispatchEvent(
-      new CustomEvent("questarr-global-search", {
+      new CustomEvent(EVENTS.globalSearch, {
         detail: { query },
       })
     );

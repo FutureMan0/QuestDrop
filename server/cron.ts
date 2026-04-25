@@ -174,7 +174,7 @@ async function checkGameUpdates() {
           type: "delayed",
           title: "Game Delayed",
           message,
-          link: "/wishlist",
+          link: "/library",
         });
         notifyUser("notification", notification);
       }

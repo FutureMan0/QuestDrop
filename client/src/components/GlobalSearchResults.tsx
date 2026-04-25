@@ -7,19 +7,8 @@ import { type GameStatus } from "./StatusBadge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import GameGrid from "./GameGrid";
 import { getPrimaryConsoleLabel } from "@/lib/game-card-presenter";
 
@@ -49,9 +38,9 @@ export default function GlobalSearchResults({ query }: GlobalSearchResultsProps)
     igdb: true,
     screenscraper: true,
   });
-  const [mediaPreference, setMediaPreference] = useState<
-    "box-2d" | "box-3d" | "cartridge" | "screenshot"
-  >("box-2d");
+  const [mediaPreference, setMediaPreference] = useState<"box-2d" | "box-3d" | "cartridge" | "screenshot">(
+    "box-2d"
+  );
   const liveSearchQueryOptions = {
     staleTime: 0,
     gcTime: 5 * 60 * 1000,
@@ -74,10 +63,7 @@ export default function GlobalSearchResults({ query }: GlobalSearchResultsProps)
   } = useQuery<Game[]>({
     queryKey: ["/api/games", "global-search-library", trimmedQuery],
     queryFn: async () => {
-      const response = await apiRequest(
-        "GET",
-        `/api/games?search=${encodeURIComponent(trimmedQuery)}`
-      );
+      const response = await apiRequest("GET", `/api/games?search=${encodeURIComponent(trimmedQuery)}`);
       return response.json();
     },
     enabled: trimmedQuery.length > 0,
@@ -86,11 +72,7 @@ export default function GlobalSearchResults({ query }: GlobalSearchResultsProps)
 
   const shouldFetchIgdb = providerState.igdb && trimmedQuery.length > 0;
 
-  const {
-    data: igdbGames = [],
-    isFetching: isFetchingIgdb,
-    refetch: refetchIgdb,
-  } = useQuery<Game[]>({
+  const { data: igdbGames = [], isFetching: isFetchingIgdb, refetch: refetchIgdb } = useQuery<Game[]>({
     queryKey: ["/api/igdb/search", "global-search-igdb", trimmedQuery],
     queryFn: async () => {
       try {
@@ -116,12 +98,7 @@ export default function GlobalSearchResults({ query }: GlobalSearchResultsProps)
     isFetching: isFetchingScreenScraper,
     refetch: refetchScreenScraper,
   } = useQuery<Game[]>({
-    queryKey: [
-      "/api/metadata/screenscraper/search",
-      "global-search-screenscraper",
-      trimmedQuery,
-      mediaPreference,
-    ],
+    queryKey: ["/api/metadata/screenscraper/search", "global-search-screenscraper", trimmedQuery, mediaPreference],
     queryFn: async () => {
       try {
         const response = await apiRequest(
@@ -256,7 +233,7 @@ export default function GlobalSearchResults({ query }: GlobalSearchResultsProps)
       }));
   }, [games]);
 
-  const wishlistMatches = useMemo(
+  const requestMatches = useMemo(
     () =>
       games
         .filter((game) => {
@@ -310,7 +287,7 @@ export default function GlobalSearchResults({ query }: GlobalSearchResultsProps)
             </div>
             <p className="text-sm text-muted-foreground">
               Showing results for <span className="font-medium text-foreground">"{query}"</span>.
-              Wishlist and Library are shown first, then collapsible console groups.
+              Requested and owned titles are shown first, then collapsible console groups.
             </p>
             <div className="flex flex-wrap items-center gap-2">
               <Button
@@ -391,9 +368,7 @@ export default function GlobalSearchResults({ query }: GlobalSearchResultsProps)
               </Button>
             </CardContent>
           </Card>
-        ) : groupedByConsole.length === 0 &&
-          wishlistMatches.length === 0 &&
-          libraryMatches.length === 0 ? (
+        ) : groupedByConsole.length === 0 && requestMatches.length === 0 && libraryMatches.length === 0 ? (
           <Card>
             <CardContent className="space-y-2 p-6 text-sm text-muted-foreground">
               <p>No games found for this search.</p>
@@ -402,14 +377,14 @@ export default function GlobalSearchResults({ query }: GlobalSearchResultsProps)
           </Card>
         ) : (
           <>
-            {wishlistMatches.length > 0 && (
+            {requestMatches.length > 0 && (
               <section className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-xl font-semibold">Wishlist</h3>
-                  <Badge variant="secondary">{wishlistMatches.length}</Badge>
+                  <h3 className="text-xl font-semibold">Requests</h3>
+                  <Badge variant="secondary">{requestMatches.length}</Badge>
                 </div>
                 <GameGrid
-                  games={wishlistMatches}
+                  games={requestMatches}
                   onStatusChange={(gameId, status) => statusMutation.mutate({ gameId, status })}
                   onToggleHidden={(gameId, hidden) => hiddenMutation.mutate({ gameId, hidden })}
                   isLoading={isLoading}
@@ -438,7 +413,7 @@ export default function GlobalSearchResults({ query }: GlobalSearchResultsProps)
               <Accordion
                 key={trimmedQuery}
                 type="multiple"
-                className="rounded-xl border border-border bg-muted/40 px-4 dark:border-white/10 dark:bg-slate-950/30"
+                className="rounded-xl border border-white/10 bg-slate-950/30 px-4"
               >
                 {groupedByConsole.map((group) => (
                   <AccordionItem key={group.consoleLabel} value={`console-${group.consoleLabel}`}>
@@ -451,12 +426,8 @@ export default function GlobalSearchResults({ query }: GlobalSearchResultsProps)
                     <AccordionContent className="pb-4">
                       <GameGrid
                         games={group.games}
-                        onStatusChange={(gameId, status) =>
-                          statusMutation.mutate({ gameId, status })
-                        }
-                        onToggleHidden={(gameId, hidden) =>
-                          hiddenMutation.mutate({ gameId, hidden })
-                        }
+                        onStatusChange={(gameId, status) => statusMutation.mutate({ gameId, status })}
+                        onToggleHidden={(gameId, hidden) => hiddenMutation.mutate({ gameId, hidden })}
                         isLoading={isLoading}
                         isFetching={isFetching}
                       />

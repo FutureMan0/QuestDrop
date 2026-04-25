@@ -865,7 +865,7 @@ export default function SettingsPage() {
                                 Twitch Developer Portal
                               </a>
                             </li>
-                            <li>Register a new application (name it 'Questarr')</li>
+                            <li>Register a new application (name it 'QuestDrop')</li>
                             <li>
                               Set Redirect URI to{" "}
                               <code className="bg-muted px-1">http://localhost</code>
@@ -1291,7 +1291,7 @@ export default function SettingsPage() {
                   <CardTitle className="text-lg">SSL/HTTPS Configuration</CardTitle>
                 </div>
                 <CardDescription>
-                  Configure secure access to Questarr. Requires server restart to apply changes.
+                  Configure secure access to QuestDrop. Requires server restart to apply changes.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">

@@ -274,6 +274,7 @@ export type Game = typeof games.$inferSelect & {
   // Additional fields for Discovery games
   isReleased?: boolean;
   releaseYear?: number | null;
+  collections?: string[];
 };
 
 export type InsertGame = (typeof insertGameSchema)["_output"];

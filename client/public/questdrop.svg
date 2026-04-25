@@ -1,0 +1,22 @@
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="qd_bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6" />
+      <stop offset="100%" stop-color="#06b6d4" />
+    </linearGradient>
+    <linearGradient id="qd_drop" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f8fafc" />
+      <stop offset="100%" stop-color="#cbd5e1" />
+    </linearGradient>
+  </defs>
+  <rect x="16" y="16" width="224" height="224" rx="56" fill="url(#qd_bg)" />
+  <path
+    d="M128 54c-27 34-48 62-48 89 0 28 21 49 48 49s48-21 48-49c0-27-21-55-48-89z"
+    fill="url(#qd_drop)"
+  />
+  <path
+    d="M128 98c-15 21-26 36-26 51 0 15 11 26 26 26s26-11 26-26c0-15-11-30-26-51z"
+    fill="#0f172a"
+    fill-opacity="0.22"
+  />
+</svg>

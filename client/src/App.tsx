@@ -12,6 +12,7 @@ import { AuthProvider } from "@/lib/auth";
 import { Suspense, lazy, useEffect, useState } from "react";
 import LoadingFallback from "@/components/LoadingFallback";
 import { ThemeProvider } from "next-themes";
+import { BRAND, EVENTS } from "@/lib/brand";
 
 // ⚡ Bolt: Code splitting with React.lazy
 // This reduces the initial bundle size by loading pages only when needed.
@@ -24,12 +25,11 @@ const DownloadersPage = lazy(() => import("@/pages/downloaders"));
 const SettingsPage = lazy(() => import("@/pages/settings"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 const LibraryPage = lazy(() => import("@/pages/library"));
-const CalendarPage = lazy(() => import("@/pages/calendar"));
-const WishlistPage = lazy(() => import("@/pages/wishlist"));
 const XrelReleasesPage = lazy(() => import("@/pages/xrel-releases"));
 const RssPage = lazy(() => import("@/pages/rss"));
 const LoginPage = lazy(() => import("@/pages/auth/login"));
 const SetupPage = lazy(() => import("@/pages/auth/setup"));
+const GameDetailsPage = lazy(() => import("@/pages/game-details"));
 
 function Router() {
   return (
@@ -45,8 +45,7 @@ function Router() {
         <Route path="/downloaders" component={DownloadersPage} />
         <Route path="/settings" component={SettingsPage} />
         <Route path="/library" component={LibraryPage} />
-        <Route path="/calendar" component={CalendarPage} />
-        <Route path="/wishlist" component={WishlistPage} />
+        <Route path="/games/:id" component={GameDetailsPage} />
         <Route path="/xrel" component={XrelReleasesPage} />
         <Route path="/rss" component={RssPage} />
         <Route component={NotFound} />
@@ -70,11 +69,8 @@ function App() {
     "/discover",
     "/library",
     "/downloads",
-    "/calendar",
-    "/wishlist",
   ]);
-  const canShowGlobalSearchResults =
-    searchableRoutes.has(location) && globalSearchQuery.trim().length > 0;
+  const canShowGlobalSearchResults = searchableRoutes.has(location) && globalSearchQuery.trim().length > 0;
 
   // Custom sidebar width for the application
   const style = {
@@ -83,6 +79,8 @@ function App() {
   };
 
   const getPageTitle = (path: string) => {
+    if (path.startsWith("/games/")) return "Game Details";
+
     switch (path) {
       case "/":
         return "Dashboard";
@@ -100,16 +98,12 @@ function App() {
         return "Settings";
       case "/library":
         return "Library";
-      case "/calendar":
-        return "Calendar";
-      case "/wishlist":
-        return "Request";
       case "/xrel":
         return "xREL.to releases";
       case "/rss":
         return "RSS Feeds";
       default:
-        return "Questarr More";
+        return BRAND.name;
     }
   };
 
@@ -123,9 +117,9 @@ function App() {
       const customEvent = event as CustomEvent<{ query?: string }>;
       setGlobalSearchQuery(customEvent.detail?.query ?? "");
     };
-    window.addEventListener("questarr-global-search", handleGlobalSearch);
+    window.addEventListener(EVENTS.globalSearch, handleGlobalSearch);
     return () => {
-      window.removeEventListener("questarr-global-search", handleGlobalSearch);
+      window.removeEventListener(EVENTS.globalSearch, handleGlobalSearch);
     };
   }, []);
 
@@ -133,7 +127,7 @@ function App() {
   if (location === "/login" || location === "/setup") {
     return (
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           <AuthProvider>
             <Router />
             <Toaster />
@@ -145,15 +139,15 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
         <AuthProvider>
           <TooltipProvider>
             <SidebarProvider style={style as React.CSSProperties}>
-              <div className="flex h-dvh min-h-dvh w-full overflow-hidden">
+              <div className="flex h-screen w-full overflow-hidden">
                 <AppSidebar activeItem={location} onNavigate={navigate} />
-                <div className="flex min-w-0 flex-1 flex-col bg-gradient-to-b from-transparent via-background to-muted/40 dark:via-slate-950/30 dark:to-slate-950/45">
+                <div className="flex min-w-0 flex-1 flex-col bg-gradient-to-b from-transparent via-slate-950/30 to-slate-950/45">
                   <Header title={getPageTitle(location)} />
-                  <main className="flex min-h-0 flex-1 overflow-hidden">
+                  <main className="flex-1 overflow-hidden">
                     {canShowGlobalSearchResults ? (
                       <GlobalSearchResults query={globalSearchQuery.trim()} />
                     ) : (

@@ -2,9 +2,7 @@ import {
   Home,
   Library,
   Download,
-  Calendar,
   Settings,
-  Star,
   Database,
   HardDrive,
   Compass,
@@ -35,7 +33,7 @@ import semver from "semver";
 import { FaArrowUp } from "react-icons/fa";
 import { useLatestQuestarrVersion } from "@/hooks/use-latest-questarr-version";
 import { useAuth } from "@/lib/auth";
-import { APP_DISPLAY_NAME, APP_GITHUB_URL, APP_VERSION } from "@/lib/app-branding";
+import { BRAND, EVENTS } from "@/lib/brand";
 
 const staticNavigation = [
   {
@@ -57,16 +55,6 @@ const staticNavigation = [
     title: "Downloads",
     url: "/downloads",
     icon: Download,
-  },
-  {
-    title: "Calendar",
-    url: "/calendar",
-    icon: Calendar,
-  },
-  {
-    title: "Request",
-    url: "/wishlist",
-    icon: Star,
   },
   {
     title: "xREL.to Releases",
@@ -116,11 +104,7 @@ export default function AppSidebar({ activeItem = "/", onNavigate }: AppSidebarP
       const nextSearch = params.toString();
       const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ""}`;
       window.history.replaceState({}, "", nextUrl);
-      window.dispatchEvent(
-        new CustomEvent("questarr-global-search", {
-          detail: { query: "" },
-        })
-      );
+      window.dispatchEvent(new CustomEvent(EVENTS.globalSearch, { detail: { query: "" } }));
     }
     onNavigate?.(url);
   };
@@ -134,17 +118,15 @@ export default function AppSidebar({ activeItem = "/", onNavigate }: AppSidebarP
     refetchInterval: 5000,
   });
 
-  const { libraryCount, wishlistCount } = useMemo(() => {
+  const { libraryCount } = useMemo(() => {
     return games.reduce(
       (counts, g) => {
         if (["owned", "completed", "downloading"].includes(g.status)) {
           counts.libraryCount++;
-        } else if (g.status === "wanted") {
-          counts.wishlistCount++;
         }
         return counts;
       },
-      { libraryCount: 0, wishlistCount: 0 }
+      { libraryCount: 0 }
     );
   }, [games]);
   const activeDownloadsCount = downloadsData?.downloads?.length || 0;
@@ -154,8 +136,6 @@ export default function AppSidebar({ activeItem = "/", onNavigate }: AppSidebarP
 
     if (item.title === "Library" && libraryCount > 0) {
       badge = libraryCount.toString();
-    } else if (item.title === "Wishlist" && wishlistCount > 0) {
-      badge = wishlistCount.toString();
     } else if (item.title === "Downloads" && activeDownloadsCount > 0) {
       badge = activeDownloadsCount.toString();
     }
@@ -168,11 +148,11 @@ export default function AppSidebar({ activeItem = "/", onNavigate }: AppSidebarP
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 flex items-center justify-center">
-            <img src="/Questarr.svg" alt={`${APP_DISPLAY_NAME} logo`} className="w-8 h-8" />
+            <img src={BRAND.logo} alt={`${BRAND.name} Logo`} className="w-8 h-8" />
           </div>
           <div>
-            <span className="truncate font-semibold">{APP_DISPLAY_NAME}</span>
-            <p className="text-xs text-muted-foreground">Game Management</p>
+            <span className="truncate font-semibold">{BRAND.name}</span>
+            <p className="text-xs text-muted-foreground">{BRAND.tagline}</p>
           </div>
         </div>
       </SidebarHeader>
@@ -247,7 +227,7 @@ export default function AppSidebar({ activeItem = "/", onNavigate }: AppSidebarP
         {/* GitHub link and version info at the bottom */}
         <div className="flex items-center justify-center gap-2 pb-2 text-xs transition-opacity hover:opacity-70 cursor-pointer">
           <a
-            href={APP_GITHUB_URL}
+            href={BRAND.githubUrl}
             target="_blank"
             rel="noopener noreferrer"
             aria-label="View on GitHub"
@@ -256,9 +236,7 @@ export default function AppSidebar({ activeItem = "/", onNavigate }: AppSidebarP
             <span className="flex flex-col justify-center items-center">
               <FaGithub size={16} />
               <span className="flex items-center gap-1">
-                <span>
-                  {APP_DISPLAY_NAME} v{APP_VERSION}
-                </span>
+                <span>{BRAND.name} v.{pkg.version}</span>
               </span>
               {hasNewerVersion && (
                 <span className="ml-1 text-emerald-500/70">

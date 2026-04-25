@@ -1313,6 +1313,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Discover: top studios derived from IGDB data
+  app.get("/api/igdb/studios", igdbRateLimiter, async (req, res) => {
+    try {
+      const { limit } = validatePaginationParams(req.query as { limit?: string; offset?: string });
+      const studios = await igdbClient.getDiscoverStudios(limit);
+      res.json(studios);
+    } catch (error) {
+      console.error("Error fetching discover studios:", error);
+      res.status(500).json({ error: "Failed to fetch studios" });
+    }
+  });
+
+  // Discover: top collections/franchises derived from IGDB data
+  app.get("/api/igdb/collections", igdbRateLimiter, async (req, res) => {
+    try {
+      const { limit } = validatePaginationParams(req.query as { limit?: string; offset?: string });
+      const collections = await igdbClient.getDiscoverCollections(limit);
+      res.json(collections);
+    } catch (error) {
+      console.error("Error fetching discover collections:", error);
+      res.status(500).json({ error: "Failed to fetch collections" });
+    }
+  });
+
+  // Get games by studio
+  app.get("/api/igdb/studio/:studio", igdbRateLimiter, async (req, res) => {
+    try {
+      const { studio } = req.params;
+      const { limit, offset } = validatePaginationParams(
+        req.query as { limit?: string; offset?: string }
+      );
+
+      if (!studio || studio.length > 100) {
+        return res.status(400).json({ error: "Invalid studio parameter" });
+      }
+
+      const igdbGames = await igdbClient.getGamesByStudio(studio, limit, offset);
+      const formattedGames = igdbGames.map((game) => igdbClient.formatGameData(game));
+      res.json(formattedGames);
+    } catch (error) {
+      console.error("Error fetching games by studio:", error);
+      res.status(500).json({ error: "Failed to fetch games by studio" });
+    }
+  });
+
+  // Get games by collection/franchise
+  app.get("/api/igdb/collection/:collection", igdbRateLimiter, async (req, res) => {
+    try {
+      const { collection } = req.params;
+      const { limit, offset } = validatePaginationParams(
+        req.query as { limit?: string; offset?: string }
+      );
+
+      if (!collection || collection.length > 100) {
+        return res.status(400).json({ error: "Invalid collection parameter" });
+      }
+
+      const igdbGames = await igdbClient.getGamesByCollection(collection, limit, offset);
+      const formattedGames = igdbGames.map((game) => igdbClient.formatGameData(game));
+      res.json(formattedGames);
+    } catch (error) {
+      console.error("Error fetching games by collection:", error);
+      res.status(500).json({ error: "Failed to fetch games by collection" });
+    }
+  });
+
   // Get game details by IGDB ID
   app.get(
     "/api/igdb/game/:id",

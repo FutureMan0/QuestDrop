@@ -1,12 +1,8 @@
 <div align="center">
-  <img src="images/Questarr_Logo-nobg.png" alt="Questarr More Logo" width="400">
-
-  <p><strong>Questarr More</strong> · <code>v2.0.0</code></p>
+  <img src="images/Questarr_Logo-nobg.png" alt="QuestDrop Logo" width="400">
 
   <p>
-    <strong>Questarr More</strong> is an extended <strong>video game library manager</strong> built on
-    <a href="https://github.com/Doezer/Questarr">Questarr</a>. It is inspired by the Sonarr/Radarr/Prowlarr-style <strong>-Arr</strong> ecosystem and GamezServer:
-    discover titles, keep a structured library, route releases through your indexers and download clients, and (optionally) <strong>import completed files</strong> into a clean folder layout — with a <strong>modern UI</strong> that works on <strong>desktop and phone</strong>, in <strong>light and dark</strong> themes.
+    QuestDrop is a video game discovery and request manager inspired by the -Arr ecosystem (Sonarr, Radarr, Prowlarr...) and GamezServer. Discover titles, manage your library, and automate game requests/download workflows in one place.
   </p>
 
   <p>
@@ -37,49 +33,32 @@
   </p>
 </div>
 
-## What Questarr More does
+## Features
 
-| Area                  | What you get                                                                                                                       |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| **Discovery**         | IGDB-backed browsing, platforms, carousels, and grids — find what to add next.                                                     |
-| **Library**           | Statuses (wanted, owned, playing, completed, …), covers, metadata, calendar-friendly dates.                                        |
-| **Request list**      | A focused **Request** workflow: queue titles, open the download flow, or remove entries — without legacy "hide" clutter on cards.  |
-| **Indexers & search** | Torznab/Newznab-style indexers, hybrid search (library + IGDB + ScreenScraper), global header search on main routes.               |
-| **Downloads**         | Live torrent + usenet queue; **improved SABnzbd/NZBGet** hand-off and lighter API polling.                                         |
-| **Auto-import**       | Optional **Folders** settings: after a download, move/rename from a **source folder** into `<LibraryRoot>/<Console>/<GameTitle>/`. |
-| **Extras**            | xREL.to releases, RSS feeds, SSL, locally hosted fonts, CSP-minded frontend.                                                       |
-| **UI**                | Cover-first cards, details modal, dashboard sections; **light & dark**; **responsive** phone/tablet layout.                        |
+- **🎮 Game Discovery**: Browse popular games, new releases, upcoming titles, and discover by genre/platform/studio/collection via IGDB and xREL.to.
+- **📚 Library Management**: Track your collection with clear statuses (`Wanted`, `Owned`, `Downloading`, `Completed`).
+<!--- **☁️ Steam Integration**: Sync your Steam wishlist and import your library automatically. -->
+- **⬇️ Download Management**: Integrate with indexers (Prowlarr/Torznab/Newsznab), torrent/usenet downloaders (qBittorrent, Transmission, rTorrent / sabnzbd, nzbget), and optionally enable auto-download to get them right when they're there.
+- **🔍 Search & Filter**: Search across providers and filter discovery by genre, platform, studio, and collection.
+- **📰 RSS Feeds**: Monitor releases from your favorite groups directly within the app.
+- **🧭 Dedicated Game Detail Pages**: Open full game details via URL routes (`/games/:id`) instead of modal overlays.
+- **🔒 Privacy Focused**: No external dependencies (even google fonts are locally hosted) and hardened security (CSP, SSRF protection), as well as SSL support.
+- **✨ Clean Interface**: UI optimized for browsing game covers and metadata, with light/dark mode.
 
-## Features (detail)
+## Latest Updates
 
-- **Game discovery**: Trending, new releases, platform filters, xREL.to integration.
-- **Library management**: Ownership/status model and rich detail views.
-- **Request workflow**: Request page + dashboard cards with consistent styling and actions.
-- **Download management**: qBittorrent, Transmission, rTorrent, **SABnzbd**, **NZBGet**; progress, pause/resume, remove.
-- **Auto-import**: Organize completed downloads into your library tree (Settings → Folders).
-- **Search**: Global search, indexer-backed discovery, collapsible result groups.
-- **RSS**: Feed monitoring inside the app.
-- **Privacy & security**: Local fonts, SSRF/CSP-oriented design, optional HTTPS.
-- **Interface**: Light/dark themes, glass-style surfaces, mobile-friendly navigation and forms.
+- **QuestDrop Rebrand**: Updated in-app branding, theme accents, metadata text, and product naming.
+- **Discover Platform Revamp**: Replaced platform dropdown/carousel flow with a brand-colored platform chip selector and vertical infinite-loading list.
+- **Studios & Collections in Discover**: Added horizontal discovery sections for studios and collections, including IGDB-backed game sections.
+- **Global Detail Navigation**: Game cards now navigate to dedicated detail pages (`/games/:id`) across the app.
+- **Navigation Simplification**: Removed Calendar and Wishlist sections from core navigation and routing.
+- **Search UX Alignment**: Refined global search grouping to prioritize active requests and owned library results.
 
-## Release highlights — v2.0.0 (Questarr More)
+## Project Status
 
-Full notes: **[CHANGELOG.md](CHANGELOG.md)**.
-
-- **Branding**: **Questarr More** · **v2.0.0** in UI and `package.json`; GitHub link configurable in `client/src/lib/app-branding.ts`.
-- **Downloaders**: More reliable NZB flow for SABnzbd; less aggressive queue polling.
-- **Auto-import**: Settings + migrations for post-download library organization.
-- **Request UX**: Refined former wishlist flows, card actions, dashboard "Recent requests".
-- **Discover**: Default "Alle", carousel loop, vertical grid for all games.
-- **Themes & mobile**: Light mode fixes, `dvh` shell, responsive header/search, downloads & settings for small screens.
-
-### Earlier stack highlights (upstream-aligned)
-
-- **Dashboard & cards**: Jellyseerr-style rows (`Recently Added`, `Recent Requests`, `Trending`, `All`), console badges, status chips.
-- **Global top search** across Dashboard, Discover, Library, Downloads, Calendar, Request.
-- **Hybrid metadata search**: `Library + IGDB + ScreenScraper`, toggles, deduping.
-- **Search UX**: Loading states, refresh, library/request sections first; collapsible console groups.
-- **Download routing**: Multi-console paths and rename behavior in the pipeline.
+- **Actively developed**: New features and UX improvements are shipped continuously.
+- **Current focus**: Discovery UX, request/download flow, and metadata quality.
+- **Short-term direction**: Improve cross-device interaction polish (desktop + touch) and expand provider integrations.
 
 ## Screenshots
 
@@ -88,7 +67,7 @@ Full notes: **[CHANGELOG.md](CHANGELOG.md)**.
 
 ### Latest Dashboard (Updated UI)
 
-<a href="assets/c__Users_luisb_AppData_Roaming_Cursor_User_workspaceStorage_0fb28d9de6cc61b672c75cf04a1eee73_images_image-18130880-f827-445e-8d7e-04de657007d0.png"><img src="assets/c__Users_luisb_AppData_Roaming_Cursor_User_workspaceStorage_0fb28d9de6cc61b672c75cf04a1eee73_images_image-18130880-f827-445e-8d7e-04de657007d0.png" /></a>
+<a href="assets/c__Users_luisb_AppData_Roaming_Cursor_User_workspaceStorage_0fb28d9de6cc61b672c75cf04a1eee73_images_image-cb93e5a6-0b63-47f5-a5e3-7a8e138d5c1d.png"><img src="assets/c__Users_luisb_AppData_Roaming_Cursor_User_workspaceStorage_0fb28d9de6cc61b672c75cf04a1eee73_images_image-cb93e5a6-0b63-47f5-a5e3-7a8e138d5c1d.png" /></a>
 
 ### Dashboard
 
@@ -99,26 +78,18 @@ Your central hub for recent activity, collection overview and downloading availa
 
 ### Discover Games
 
-Browse and find new games to add to your collection.
+Browse and find new games to add to your collection, including platform chips, studios, and collections.
 
 <p float="left">
   <a href="images/Screenshots/discover.png"><img src="images/Screenshots/discover.png" width="49%" /></a>
   <a href="images/Screenshots/xrelto.png"><img src="images/Screenshots/xrelto.png" width="49%" /></a> 
 </p>
 
-### Library & Request
+### Library
 
-Manage owned games and your request queue.
+Manage your owned/downloading/completed games.
 
-<p float="left">
-  <a href="images/Screenshots/library.png"><img src="images/Screenshots/library.png" width="49%" /></a>
-  <a href="images/Screenshots/wishlist.png"><img src="images/Screenshots/wishlist.png" width="49%" /></a> 
-</p>
-
-### Calendar
-
-Keep track of upcoming releases.
-<a href="images/Screenshots/calendar.png"><img src="images/Screenshots/calendar.png" /></a>
+<a href="images/Screenshots/library.png"><img src="images/Screenshots/library.png" /></a>
 
 ### Downloads Queue (WIP)
 
@@ -246,10 +217,8 @@ See [docs/MIGRATION.md](docs/MIGRATION.md) for more details.
 
 - Stable template: `unraid/questarr.xml`
 - Beta template: `unraid/questarr-beta.xml`
-- **Questarr More (Build aus Git):** `unraid/questarr-more.xml` + Anleitung **[unraid/README.md](unraid/README.md)** — nutzt das lokale Image `questarr-more:local` (siehe auch **`docker-compose.unraid.yml`**).
 
 Both templates are preconfigured with:
-
 - `PUID`/`PGID` permission mapping
 - persistent `/app/data` volume for SQLite
 - optional SSL port mapping (`9898`)
@@ -261,13 +230,12 @@ Both templates are preconfigured with:
 
 - Create your admin account
 - Configure the IGDB credentials
-- Connect your Steam account (Optional)
 
 Once logged-in:
 
 - Configure indexers
 - Add downloaders
-- Add games!
+- Discover games and request downloads
 
 See [Configuration on the Wiki](https://github.com/Doezer/Questarr/wiki/Configuring-the-application#configure-app-behavior-in-settings--general) for more detailed info.
 
@@ -280,7 +248,7 @@ IGDB provides game metadata (covers, descriptions, ratings, release dates, etc.)
 2. Log in with your Twitch account (create one if needed)
 3. Click "Register Your Application"
 4. Fill in:
-   - **Name**: Questarr (or any name)
+   - **Name**: QuestDrop (or any name)
    - **OAuth Redirect URLs**: `http://localhost` (not used, but required)
    - **Category**: Application Integration
 5. Click "Create"

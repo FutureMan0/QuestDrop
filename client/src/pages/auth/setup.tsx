@@ -230,7 +230,7 @@ export default function SetupPage() {
                                   Twitch Developer Portal
                                 </a>
                               </li>
-                              <li>Register a new application (name it 'Questarr')</li>
+                              <li>Register a new application (name it 'QuestDrop')</li>
                               <li>
                                 Set Redirect URI to{" "}
                                 <code className="bg-muted px-1">http://localhost</code>
