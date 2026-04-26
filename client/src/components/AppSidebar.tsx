@@ -6,6 +6,7 @@ import {
   Database,
   HardDrive,
   Compass,
+  BookmarkCheck,
   LogOut,
   User,
   Newspaper,
@@ -34,6 +35,7 @@ import { FaArrowUp } from "react-icons/fa";
 import { useLatestQuestarrVersion } from "@/hooks/use-latest-questarr-version";
 import { useAuth } from "@/lib/auth";
 import { BRAND, EVENTS } from "@/lib/brand";
+import { isRequestStatus } from "@/lib/utils";
 
 const staticNavigation = [
   {
@@ -45,6 +47,11 @@ const staticNavigation = [
     title: "Discover",
     url: "/discover",
     icon: Compass,
+  },
+  {
+    title: "Requests",
+    url: "/requests",
+    icon: BookmarkCheck,
   },
   {
     title: "Library",
@@ -118,15 +125,18 @@ export default function AppSidebar({ activeItem = "/", onNavigate }: AppSidebarP
     refetchInterval: 5000,
   });
 
-  const { libraryCount } = useMemo(() => {
+  const { libraryCount, requestCount } = useMemo(() => {
     return games.reduce(
       (counts, g) => {
+        if (isRequestStatus(g.status)) {
+          counts.requestCount++;
+        }
         if (["owned", "completed", "downloading"].includes(g.status)) {
           counts.libraryCount++;
         }
         return counts;
       },
-      { libraryCount: 0 }
+      { libraryCount: 0, requestCount: 0 }
     );
   }, [games]);
   const activeDownloadsCount = downloadsData?.downloads?.length || 0;
@@ -134,7 +144,9 @@ export default function AppSidebar({ activeItem = "/", onNavigate }: AppSidebarP
   const navigation = staticNavigation.map((item) => {
     let badge: string | undefined;
 
-    if (item.title === "Library" && libraryCount > 0) {
+    if (item.title === "Requests" && requestCount > 0) {
+      badge = requestCount.toString();
+    } else if (item.title === "Library" && libraryCount > 0) {
       badge = libraryCount.toString();
     } else if (item.title === "Downloads" && activeDownloadsCount > 0) {
       badge = activeDownloadsCount.toString();
@@ -236,7 +248,9 @@ export default function AppSidebar({ activeItem = "/", onNavigate }: AppSidebarP
             <span className="flex flex-col justify-center items-center">
               <FaGithub size={16} />
               <span className="flex items-center gap-1">
-                <span>{BRAND.name} v.{pkg.version}</span>
+                <span>
+                  {BRAND.name} v.{pkg.version}
+                </span>
               </span>
               {hasNewerVersion && (
                 <span className="ml-1 text-emerald-500/70">

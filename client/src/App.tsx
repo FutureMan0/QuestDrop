@@ -20,6 +20,7 @@ const Dashboard = lazy(() => import("@/components/Dashboard"));
 const DiscoverPage = lazy(() => import("@/pages/discover"));
 const SearchPage = lazy(() => import("@/pages/search"));
 const DownloadsPage = lazy(() => import("@/pages/downloads"));
+const RequestsPage = lazy(() => import("@/pages/requests"));
 const IndexersPage = lazy(() => import("@/pages/indexers"));
 const DownloadersPage = lazy(() => import("@/pages/downloaders"));
 const SettingsPage = lazy(() => import("@/pages/settings"));
@@ -41,6 +42,7 @@ function Router() {
         <Route path="/discover" component={DiscoverPage} />
         <Route path="/search" component={SearchPage} />
         <Route path="/downloads" component={DownloadsPage} />
+        <Route path="/requests" component={RequestsPage} />
         <Route path="/indexers" component={IndexersPage} />
         <Route path="/downloaders" component={DownloadersPage} />
         <Route path="/settings" component={SettingsPage} />
@@ -64,13 +66,9 @@ function AppContent() {
 function App() {
   const [location, navigate] = useLocation();
   const [globalSearchQuery, setGlobalSearchQuery] = useState("");
-  const searchableRoutes = new Set([
-    "/",
-    "/discover",
-    "/library",
-    "/downloads",
-  ]);
-  const canShowGlobalSearchResults = searchableRoutes.has(location) && globalSearchQuery.trim().length > 0;
+  const searchableRoutes = new Set(["/", "/discover", "/requests", "/library", "/downloads"]);
+  const canShowGlobalSearchResults =
+    searchableRoutes.has(location) && globalSearchQuery.trim().length > 0;
 
   // Custom sidebar width for the application
   const style = {
@@ -90,6 +88,8 @@ function App() {
         return "Search";
       case "/downloads":
         return "Downloads";
+      case "/requests":
+        return "Requests";
       case "/indexers":
         return "Indexers";
       case "/downloaders":

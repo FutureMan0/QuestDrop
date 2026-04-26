@@ -57,6 +57,13 @@ export function getGameDetailsRouteId(game: Pick<Game, "id" | "igdbId">): string
   return String(game.id);
 }
 
+const REQUEST_STATUSES = new Set(["wanted", "downloading", "pending", "requested"]);
+
+export function isRequestStatus(status: string | null | undefined): boolean {
+  if (!status) return false;
+  return REQUEST_STATUSES.has(status.toLowerCase());
+}
+
 /**
  * Maps a Game object to an InsertGame object by filtering out fields
  * that should not be sent to the POST /api/games endpoint.

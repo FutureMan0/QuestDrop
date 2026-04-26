@@ -7,10 +7,22 @@ import { type GameStatus } from "./StatusBadge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import GameGrid from "./GameGrid";
 import { getPrimaryConsoleLabel } from "@/lib/game-card-presenter";
+import { isRequestStatus } from "@/lib/utils";
 
 interface GlobalSearchResultsProps {
   query: string;
@@ -38,9 +50,9 @@ export default function GlobalSearchResults({ query }: GlobalSearchResultsProps)
     igdb: true,
     screenscraper: true,
   });
-  const [mediaPreference, setMediaPreference] = useState<"box-2d" | "box-3d" | "cartridge" | "screenshot">(
-    "box-2d"
-  );
+  const [mediaPreference, setMediaPreference] = useState<
+    "box-2d" | "box-3d" | "cartridge" | "screenshot"
+  >("box-2d");
   const liveSearchQueryOptions = {
     staleTime: 0,
     gcTime: 5 * 60 * 1000,
@@ -63,7 +75,10 @@ export default function GlobalSearchResults({ query }: GlobalSearchResultsProps)
   } = useQuery<Game[]>({
     queryKey: ["/api/games", "global-search-library", trimmedQuery],
     queryFn: async () => {
-      const response = await apiRequest("GET", `/api/games?search=${encodeURIComponent(trimmedQuery)}`);
+      const response = await apiRequest(
+        "GET",
+        `/api/games?search=${encodeURIComponent(trimmedQuery)}`
+      );
       return response.json();
     },
     enabled: trimmedQuery.length > 0,
@@ -72,7 +87,11 @@ export default function GlobalSearchResults({ query }: GlobalSearchResultsProps)
 
   const shouldFetchIgdb = providerState.igdb && trimmedQuery.length > 0;
 
-  const { data: igdbGames = [], isFetching: isFetchingIgdb, refetch: refetchIgdb } = useQuery<Game[]>({
+  const {
+    data: igdbGames = [],
+    isFetching: isFetchingIgdb,
+    refetch: refetchIgdb,
+  } = useQuery<Game[]>({
     queryKey: ["/api/igdb/search", "global-search-igdb", trimmedQuery],
     queryFn: async () => {
       try {
@@ -98,7 +117,12 @@ export default function GlobalSearchResults({ query }: GlobalSearchResultsProps)
     isFetching: isFetchingScreenScraper,
     refetch: refetchScreenScraper,
   } = useQuery<Game[]>({
-    queryKey: ["/api/metadata/screenscraper/search", "global-search-screenscraper", trimmedQuery, mediaPreference],
+    queryKey: [
+      "/api/metadata/screenscraper/search",
+      "global-search-screenscraper",
+      trimmedQuery,
+      mediaPreference,
+    ],
     queryFn: async () => {
       try {
         const response = await apiRequest(
@@ -206,7 +230,7 @@ export default function GlobalSearchResults({ query }: GlobalSearchResultsProps)
     const prioritizedKeys = new Set<string>();
     games.forEach((game) => {
       const status = (game.status || "").toLowerCase();
-      if (status === "wanted" || status === "pending" || status === "requested") {
+      if (isRequestStatus(status)) {
         prioritizedKeys.add(toDedupeKey(game));
         return;
       }
@@ -237,8 +261,7 @@ export default function GlobalSearchResults({ query }: GlobalSearchResultsProps)
     () =>
       games
         .filter((game) => {
-          const status = (game.status || "").toLowerCase();
-          return status === "wanted" || status === "pending" || status === "requested";
+          return isRequestStatus(game.status);
         })
         .sort((a, b) => a.title.localeCompare(b.title)),
     [games]
@@ -249,7 +272,7 @@ export default function GlobalSearchResults({ query }: GlobalSearchResultsProps)
       games
         .filter((game) => {
           const status = (game.status || "").toLowerCase();
-          return status === "owned" || status === "completed" || status === "downloading";
+          return status === "owned" || status === "completed";
         })
         .sort((a, b) => a.title.localeCompare(b.title)),
     [games]
@@ -368,7 +391,9 @@ export default function GlobalSearchResults({ query }: GlobalSearchResultsProps)
               </Button>
             </CardContent>
           </Card>
-        ) : groupedByConsole.length === 0 && requestMatches.length === 0 && libraryMatches.length === 0 ? (
+        ) : groupedByConsole.length === 0 &&
+          requestMatches.length === 0 &&
+          libraryMatches.length === 0 ? (
           <Card>
             <CardContent className="space-y-2 p-6 text-sm text-muted-foreground">
               <p>No games found for this search.</p>
@@ -426,8 +451,12 @@ export default function GlobalSearchResults({ query }: GlobalSearchResultsProps)
                     <AccordionContent className="pb-4">
                       <GameGrid
                         games={group.games}
-                        onStatusChange={(gameId, status) => statusMutation.mutate({ gameId, status })}
-                        onToggleHidden={(gameId, hidden) => hiddenMutation.mutate({ gameId, hidden })}
+                        onStatusChange={(gameId, status) =>
+                          statusMutation.mutate({ gameId, status })
+                        }
+                        onToggleHidden={(gameId, hidden) =>
+                          hiddenMutation.mutate({ gameId, hidden })
+                        }
                         isLoading={isLoading}
                         isFetching={isFetching}
                       />

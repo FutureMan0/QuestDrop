@@ -181,7 +181,7 @@ const GameCard = ({
           src={game.coverUrl || "/placeholder-game-cover.jpg"}
           alt={`${game.title} cover`}
           className="aspect-[11/16] w-full cursor-pointer object-cover"
-          onClick={() => handleDetailsClick()}
+          onClick={() => handleDetailsClick({ forceNavigate: true })}
           loading="lazy"
           data-testid={`img-cover-${game.id}`}
         />
