@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, Download, Star, Tag, Monitor, ArrowLeft, Trash2 } from "lucide-react";
 import { type Game } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, ApiError } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import GameDownloadDialog from "@/components/GameDownloadDialog";
 import { isDiscoveryId } from "@/lib/utils";
@@ -29,23 +29,94 @@ async function fetchLocalGame(id: string): Promise<Game | null> {
   return response.json();
 }
 
-function findCachedSearchGame(queryClient: QueryClient, routeId: string): Game | null {
-  const querySources: ReadonlyArray<ReadonlyArray<unknown>> = [
-    ["/api/metadata/screenscraper/search", "global-search-screenscraper"],
-    ["/api/igdb/search", "global-search-igdb"],
-    ["/api/games/discover"],
-  ];
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
 
-  for (const queryKey of querySources) {
-    const cachedEntries = queryClient.getQueriesData<Game[]>({ queryKey });
-    for (const [, data] of cachedEntries) {
-      if (!Array.isArray(data)) continue;
-      const matched = data.find((game) => String(game.id) === routeId);
-      if (matched) return matched;
+function extractGamesFromQueryData(data: unknown): Game[] {
+  if (!data) return [];
+
+  if (Array.isArray(data) && (data.length === 0 || isRecord(data[0]))) {
+    return data as Game[];
+  }
+
+  if (isRecord(data) && "pages" in data && Array.isArray(data.pages)) {
+    const pageGames: Game[] = [];
+    for (const page of data.pages as unknown[]) {
+      if (Array.isArray(page) && (page.length === 0 || isRecord(page[0]))) {
+        pageGames.push(...(page as Game[]));
+      }
+    }
+    return pageGames;
+  }
+
+  return [];
+}
+
+function getFirstKeyString(queryKey: readonly unknown[] | undefined): string | null {
+  if (!queryKey || queryKey.length === 0) return null;
+  const first = queryKey[0];
+  return typeof first === "string" ? first : null;
+}
+
+/**
+ * Searches the React Query cache for client-side "discovery" / metadata lists, including
+ * infinite queries, so Discover carousels (e.g. /api/igdb/popular) can populate details even
+ * if the user navigates directly to /games/igdb-... without a prior global search.
+ */
+function findCachedGameInLists(
+  queryClient: QueryClient,
+  routeId: string,
+  igdbId: number | null
+): Game | null {
+  const entries = queryClient.getQueriesData({ type: "all" as const });
+
+  for (const [queryKey, data] of entries) {
+    if (!Array.isArray(queryKey)) continue;
+
+    const firstKey = getFirstKeyString(queryKey);
+    if (!firstKey) continue;
+    if (
+      !firstKey.startsWith("/api/igdb/") &&
+      !firstKey.startsWith("/api/metadata/") &&
+      firstKey !== "/api/games/discover"
+    ) {
+      continue;
+    }
+
+    const games = extractGamesFromQueryData(data);
+    if (games.length === 0) continue;
+
+    const byId = games.find((g) => String(g.id) === routeId);
+    if (byId) return byId;
+    if (igdbId !== null) {
+      const byIgdb = games.find((g) => g.igdbId === igdbId);
+      if (byIgdb) return byIgdb;
     }
   }
 
   return null;
+}
+
+async function fetchIgdbGameOrNull(igdbId: number): Promise<Game | null> {
+  try {
+    const response = await apiRequest("GET", `/api/igdb/game/${igdbId}`);
+    return (await response.json()) as Game;
+  } catch (error) {
+    if (error instanceof ApiError && (error.status === 404 || error.status === 400)) {
+      return null;
+    }
+    // Network/IGDB down: fall back to whatever we can read from the cache
+    return null;
+  }
+}
+
+const ALLOWED_RETURN_PATHS = new Set(["/requests", "/library", "/discover", "/downloads", "/"]);
+
+function getSafeReturnPathFromSearch(search: string): string {
+  const from = new URLSearchParams(search).get("from");
+  if (from && ALLOWED_RETURN_PATHS.has(from)) return from;
+  return "/discover";
 }
 
 export default function GameDetailsPage() {
@@ -57,6 +128,9 @@ export default function GameDetailsPage() {
   const [selectedScreenshot, setSelectedScreenshot] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const returnPath = getSafeReturnPathFromSearch(
+    typeof window !== "undefined" ? window.location.search : ""
+  );
 
   const { data: game, isLoading } = useQuery<Game | null>({
     queryKey: ["/game-details", routeId],
@@ -64,11 +138,10 @@ export default function GameDetailsPage() {
     queryFn: async () => {
       const localGame = await fetchLocalGame(routeId);
       if (localGame) return localGame;
-      const cachedSearchGame = findCachedSearchGame(queryClient, routeId);
-      if (cachedSearchGame) return cachedSearchGame;
+      const listCached = findCachedGameInLists(queryClient, routeId, igdbId);
+      if (listCached) return listCached;
       if (!igdbId) return null;
-      const response = await apiRequest("GET", `/api/igdb/game/${igdbId}`);
-      return response.json();
+      return await fetchIgdbGameOrNull(igdbId);
     },
   });
 
@@ -79,7 +152,8 @@ export default function GameDetailsPage() {
     onSuccess: () => {
       toast({ description: "Game removed from collection" });
       queryClient.invalidateQueries({ queryKey: ["/api/games"] });
-      navigate("/library");
+      // Keep the user in their workflow when they came from the Requests list.
+      navigate(returnPath);
     },
     onError: () => {
       toast({ description: "Failed to remove game", variant: "destructive" });
@@ -102,9 +176,9 @@ export default function GameDetailsPage() {
   if (!game) {
     return (
       <div className="h-full overflow-auto p-6 space-y-4">
-        <Button variant="outline" size="sm" onClick={() => navigate("/discover")} className="gap-2">
+        <Button variant="outline" size="sm" onClick={() => navigate(returnPath)} className="gap-2">
           <ArrowLeft className="h-4 w-4" />
-          Back to Discover
+          Back
         </Button>
         <Card>
           <CardContent className="p-6">
@@ -119,17 +193,17 @@ export default function GameDetailsPage() {
   return (
     <div className="h-full overflow-auto p-6">
       <div className="mx-auto max-w-6xl space-y-6">
-        <Button variant="outline" size="sm" onClick={() => navigate("/discover")} className="gap-2">
+        <Button variant="outline" size="sm" onClick={() => navigate(returnPath)} className="gap-2">
           <ArrowLeft className="h-4 w-4" />
           Back
         </Button>
 
-        <section className="rounded-[24px] border border-white/10 bg-slate-950/70 p-5">
+        <section className="rounded-[24px] border border-border bg-card/70 p-5">
           <div className="grid gap-6 md:grid-cols-[220px_1fr]">
             <img
               src={game.coverUrl || "/placeholder-game-cover.jpg"}
               alt={`${game.title} cover`}
-              className="w-full rounded-xl border border-white/15 object-cover"
+              className="w-full rounded-xl border border-border object-cover"
               style={{ aspectRatio: "2 / 3" }}
             />
 
@@ -221,7 +295,7 @@ export default function GameDetailsPage() {
                     <button
                       type="button"
                       key={`${screenshot}-${idx}`}
-                      className="overflow-hidden rounded-lg border border-white/10"
+                      className="overflow-hidden rounded-lg border border-border"
                       onClick={() => setSelectedScreenshot(screenshot)}
                     >
                       <img

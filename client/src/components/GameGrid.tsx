@@ -13,6 +13,11 @@ interface GameGridProps {
   onToggleHidden?: (gameId: string, hidden: boolean) => void;
   onRequestSearch?: (gameId: string) => void;
   onRemoveRequest?: (gameId: string) => void;
+  /**
+   * If set, appends `?from=<path>` to `/games/...` navigation so Game Details
+   * can return to the right screen after actions like remove.
+   */
+  detailsFromPath?: string;
   isDiscovery?: boolean;
   isRequestView?: boolean;
   isLoading?: boolean;
@@ -30,6 +35,7 @@ export default function GameGrid({
   onToggleHidden,
   onRequestSearch,
   onRemoveRequest,
+  detailsFromPath,
   isDiscovery = false,
   isRequestView = false,
   isLoading = false,
@@ -123,6 +129,7 @@ export default function GameGrid({
             onRemoveRequest={onRemoveRequest}
             isDiscovery={cardIsDiscovery}
             isRequestView={isRequestView}
+            detailsFromPath={detailsFromPath}
             density={density}
           />
         ) : (
@@ -137,6 +144,7 @@ export default function GameGrid({
             onRemoveRequest={onRemoveRequest}
             isDiscovery={cardIsDiscovery}
             isRequestView={isRequestView}
+            detailsFromPath={detailsFromPath}
           />
         );
       })}

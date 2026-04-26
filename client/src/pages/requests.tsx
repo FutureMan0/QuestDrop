@@ -152,6 +152,7 @@ export default function RequestsPage() {
           onToggleHidden={(gameId, hidden) => hiddenMutation.mutate({ gameId, hidden })}
           isLoading={isLoading}
           isRequestView
+          detailsFromPath="/requests"
           viewMode={viewMode}
           density={listDensity}
         />

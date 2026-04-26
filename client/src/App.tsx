@@ -145,7 +145,7 @@ function App() {
             <SidebarProvider style={style as React.CSSProperties}>
               <div className="flex h-screen w-full overflow-hidden">
                 <AppSidebar activeItem={location} onNavigate={navigate} />
-                <div className="flex min-w-0 flex-1 flex-col bg-gradient-to-b from-transparent via-slate-950/30 to-slate-950/45">
+                <div className="flex min-w-0 flex-1 flex-col bg-gradient-to-b from-transparent via-muted/20 to-background">
                   <Header title={getPageTitle(location)} />
                   <main className="flex-1 overflow-hidden">
                     {canShowGlobalSearchResults ? (

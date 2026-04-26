@@ -6,7 +6,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Badge } from "@/components/ui/badge";
 import { type GameStatus } from "./StatusBadge";
 import { type Game } from "@shared/schema";
-import { useState, memo, useRef, useEffect } from "react";
+import { useState, memo, useRef, useEffect, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import GameDownloadDialog from "./GameDownloadDialog";
 import { mapGameToInsertGame, isDiscoveryId, getGameDetailsRouteId } from "@/lib/utils";
@@ -23,6 +23,7 @@ interface GameCardProps {
   onToggleHidden?: (gameId: string, hidden: boolean) => void;
   onRequestSearch?: (gameId: string) => void;
   onRemoveRequest?: (gameId: string) => void;
+  detailsFromPath?: string;
   isDiscovery?: boolean;
   isRequestView?: boolean;
   layout?: "grid" | "carousel";
@@ -36,6 +37,7 @@ const GameCard = ({
   onStatusChange,
   onViewDetails,
   onToggleHidden,
+  detailsFromPath,
   isDiscovery = false,
   layout = "grid",
 }: GameCardProps) => {
@@ -44,10 +46,18 @@ const GameCard = ({
   const [downloadOpen, setDownloadOpen] = useState(false);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
   const [mobileQuickActionsOpen, setMobileQuickActionsOpen] = useState(false);
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const cardRef = useRef<HTMLDivElement>(null);
   // Keep track of the resolved game object (either original or newly added)
   const [resolvedGame, setResolvedGame] = useState<Game>(game);
+
+  const detailsSearchSuffix = useMemo(() => {
+    if (!detailsFromPath) return "";
+    const params = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+    params.set("from", detailsFromPath);
+    const qs = params.toString();
+    return qs ? `?${qs}` : "";
+  }, [detailsFromPath, location]);
 
   // Update resolved game if props change
   useEffect(() => {
@@ -142,7 +152,7 @@ const GameCard = ({
     }
 
     const detailsId = getGameDetailsRouteId(resolvedGame);
-    navigate(`/games/${detailsId}`);
+    navigate(`/games/${detailsId}${detailsSearchSuffix}`);
     onViewDetails?.(game.id);
   };
 
@@ -173,7 +183,7 @@ const GameCard = ({
   return (
     <Card
       ref={cardRef}
-      className={`group mx-auto flex h-full w-full flex-col overflow-hidden border border-white/10 bg-slate-950/90 transition-all duration-300 hover:-translate-y-0.5 hover:border-white/25 hover:shadow-[0_22px_40px_-28px_rgba(0,0,0,0.95)] ${isCarouselLayout ? "max-w-none rounded-[22px]" : "max-w-[245px] rounded-[18px]"} ${game.hidden ? "opacity-60 grayscale" : ""}`}
+      className={`group mx-auto flex h-full w-full flex-col overflow-hidden border border-border bg-card/95 text-card-foreground transition-all duration-300 hover:-translate-y-0.5 hover:border-border hover:shadow-lg ${isCarouselLayout ? "max-w-none rounded-[22px]" : "max-w-[245px] rounded-[18px]"} ${game.hidden ? "opacity-60 grayscale" : ""}`}
       data-testid={`card-game-${game.id}`}
     >
       <div className="relative">
@@ -245,7 +255,7 @@ const GameCard = ({
           </Tooltip>
 
           {isTouchDevice && mobileQuickActionsOpen && (
-            <div className="absolute inset-x-3 bottom-3 rounded-md border border-white/15 bg-black/60 p-2 text-xs text-white backdrop-blur-sm">
+            <div className="absolute inset-x-3 bottom-3 rounded-md border border-border/60 bg-background/75 p-2 text-xs text-foreground shadow-sm backdrop-blur-sm">
               <div className="mb-2 line-clamp-1 font-medium">{game.title}</div>
               <Button
                 size="sm"
@@ -260,7 +270,7 @@ const GameCard = ({
           )}
 
           {game.hidden && (
-            <Badge variant="secondary" className="text-xs bg-gray-500 text-white">
+            <Badge variant="secondary" className="text-xs">
               Hidden
             </Badge>
           )}
@@ -286,7 +296,7 @@ const GameCard = ({
         </div>
       </div>
       <CardContent
-        className="flex flex-1 flex-col space-y-2 bg-gradient-to-b from-slate-900/95 to-slate-950/95 p-3"
+        className="flex flex-1 flex-col space-y-2 bg-muted/20 p-3"
         onClick={(e) => e.stopPropagation()}
       >
         <h3

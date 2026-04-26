@@ -682,7 +682,7 @@ export default function DiscoverPage() {
                     </p>
                   </div>
 
-                  <TabsList className="border border-white/10 bg-slate-900/70">
+                  <TabsList className="border border-border bg-muted/60">
                     <TabsTrigger value="igdb">IGDB Discovery</TabsTrigger>
                     <TabsTrigger value="rss" className="gap-2">
                       <Rss className="h-4 w-4" /> RSS Feeds
@@ -768,7 +768,7 @@ export default function DiscoverPage() {
                           className={`group relative h-24 w-56 overflow-hidden rounded-xl border text-left transition-all ${
                             isActive
                               ? "border-primary shadow-[0_0_20px_hsl(var(--primary)/0.35)]"
-                              : "border-white/10 hover:border-white/25"
+                              : "border-border hover:border-border"
                           }`}
                         >
                           {studio.coverUrl ? (
@@ -778,10 +778,12 @@ export default function DiscoverPage() {
                               className="absolute inset-0 h-full w-full object-cover opacity-35"
                             />
                           ) : null}
-                          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 to-slate-900/70" />
+                          <div className="absolute inset-0 bg-gradient-to-r from-background/90 to-muted/80" />
                           <div className="relative flex h-full flex-col justify-end p-3">
-                            <p className="font-semibold text-white">{studio.name}</p>
-                            <p className="text-xs text-slate-300">{studio.gameCount} titles</p>
+                            <p className="font-semibold text-foreground">{studio.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {studio.gameCount} titles
+                            </p>
                           </div>
                         </button>
                       );
@@ -830,7 +832,7 @@ export default function DiscoverPage() {
                           className={`group relative h-24 w-64 overflow-hidden rounded-xl border text-left transition-all ${
                             isActive
                               ? "border-primary shadow-[0_0_20px_hsl(var(--primary)/0.35)]"
-                              : "border-white/10 hover:border-white/25"
+                              : "border-border hover:border-border"
                           }`}
                         >
                           {collection.coverUrl ? (
@@ -840,10 +842,12 @@ export default function DiscoverPage() {
                               className="absolute inset-0 h-full w-full object-cover opacity-35"
                             />
                           ) : null}
-                          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 to-slate-900/70" />
+                          <div className="absolute inset-0 bg-gradient-to-r from-background/90 to-muted/80" />
                           <div className="relative flex h-full flex-col justify-end p-3">
-                            <p className="font-semibold text-white">{collection.name}</p>
-                            <p className="text-xs text-slate-300">{collection.gameCount} titles</p>
+                            <p className="font-semibold text-foreground">{collection.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {collection.gameCount} titles
+                            </p>
                           </div>
                         </button>
                       );

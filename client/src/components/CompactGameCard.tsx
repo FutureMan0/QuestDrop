@@ -1,4 +1,4 @@
-import React, { memo, useState, useEffect } from "react";
+import React, { memo, useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Download,
@@ -31,6 +31,7 @@ interface CompactGameCardProps {
   onToggleHidden?: (gameId: string, hidden: boolean) => void;
   onRequestSearch?: (gameId: string) => void;
   onRemoveRequest?: (gameId: string) => void;
+  detailsFromPath?: string;
   isDiscovery?: boolean;
   isRequestView?: boolean;
   density?: "comfortable" | "compact" | "ultra-compact";
@@ -73,13 +74,14 @@ const CompactGameCard = ({
   onStatusChange,
   onViewDetails,
   onToggleHidden,
+  detailsFromPath,
   isDiscovery = false,
   density = "comfortable",
 }: CompactGameCardProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [downloadOpen, setDownloadOpen] = useState(false);
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const releaseStatus = getReleaseStatus(game);
   const statusChip = getOwnershipStatusChip(game.status);
   const consoleChip = getConsoleChip(game);
@@ -87,6 +89,14 @@ const CompactGameCard = ({
 
   // Keep track of the resolved game object (either original or newly added)
   const [resolvedGame, setResolvedGame] = useState<Game>(game);
+
+  const detailsSearchSuffix = useMemo(() => {
+    if (!detailsFromPath) return "";
+    const params = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+    params.set("from", detailsFromPath);
+    const qs = params.toString();
+    return qs ? `?${qs}` : "";
+  }, [detailsFromPath, location]);
 
   // Update resolved game if props change
   useEffect(() => {
@@ -129,7 +139,7 @@ const CompactGameCard = ({
 
   const handleDetailsClick = () => {
     const detailsId = getGameDetailsRouteId(resolvedGame);
-    navigate(`/games/${detailsId}`);
+    navigate(`/games/${detailsId}${detailsSearchSuffix}`);
     onViewDetails?.(game.id);
   };
 
@@ -163,11 +173,11 @@ const CompactGameCard = ({
           "group relative flex items-center transition-colors hover:bg-accent/50",
           game.hidden && "opacity-60 grayscale",
           density === "comfortable" &&
-            "gap-3 p-2.5 rounded-[16px] border border-white/10 bg-slate-950/85 text-card-foreground shadow-sm",
+            "gap-3 p-2.5 rounded-[16px] border border-border bg-card text-card-foreground shadow-sm",
           density === "compact" &&
-            "gap-3 py-1.5 px-2 border-b border-slate-700/50 bg-transparent rounded-none",
+            "gap-3 py-1.5 px-2 border-b border-border/60 bg-transparent rounded-none",
           density === "ultra-compact" &&
-            "gap-2 py-1 px-2 border-b border-slate-700/50 bg-transparent rounded-none"
+            "gap-2 py-1 px-2 border-b border-border/60 bg-transparent rounded-none"
         )}
         data-testid={`card-game-compact-${game.id}`}
       >
@@ -282,7 +292,7 @@ const CompactGameCard = ({
               <Badge
                 variant="secondary"
                 className={cn(
-                  "text-[10px] h-5 px-1.5 bg-gray-500 text-white",
+                  "text-[10px] h-5 px-1.5",
                   density !== "comfortable" ? "h-4 px-1 text-[9px]" : ""
                 )}
               >
@@ -360,9 +370,7 @@ const CompactGameCard = ({
               size="sm"
               className={cn(
                 "hidden sm:flex",
-                density !== "comfortable"
-                  ? "h-6 w-6 p-0 border-0 hover:bg-slate-700"
-                  : "h-8 text-xs"
+                density !== "comfortable" ? "h-6 w-6 p-0 border-0 hover:bg-muted" : "h-8 text-xs"
               )}
               onClick={handleStatusClick}
               aria-label={`Mark ${game.title} as ${getNextStatusInfo(game.status).label}`}

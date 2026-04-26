@@ -438,7 +438,7 @@ export default function GlobalSearchResults({ query }: GlobalSearchResultsProps)
               <Accordion
                 key={trimmedQuery}
                 type="multiple"
-                className="rounded-xl border border-white/10 bg-slate-950/30 px-4"
+                className="rounded-xl border border-border bg-card/30 px-4"
               >
                 {groupedByConsole.map((group) => (
                   <AccordionItem key={group.consoleLabel} value={`console-${group.consoleLabel}`}>

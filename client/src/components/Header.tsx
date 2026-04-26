@@ -37,12 +37,7 @@ export default function Header({ title = "Dashboard" }: HeaderProps) {
   const [mounted, setMounted] = useState(false);
   const [location] = useLocation();
   const [headerSearchQuery, setHeaderSearchQuery] = useState("");
-  const searchableRoutes = new Set([
-    "/",
-    "/discover",
-    "/library",
-    "/downloads",
-  ]);
+  const searchableRoutes = new Set(["/", "/discover", "/requests", "/library", "/downloads"]);
   const isSearchEnabledRoute = searchableRoutes.has(location);
 
   // Fetch storage info every 5 minutes
