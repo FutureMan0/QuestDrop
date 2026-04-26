@@ -6,10 +6,16 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Badge } from "@/components/ui/badge";
 import { type GameStatus } from "./StatusBadge";
 import { type Game } from "@shared/schema";
-import { useState, memo, useRef, useEffect, useMemo } from "react";
+import { useState, memo, useRef, useEffect, useMemo, useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import GameDownloadDialog from "./GameDownloadDialog";
-import { mapGameToInsertGame, isDiscoveryId, getGameDetailsRouteId } from "@/lib/utils";
+import {
+  mapGameToInsertGame,
+  isDiscoveryId,
+  getGameDetailsRouteId,
+  isIgdbDiscoveryId,
+} from "@/lib/utils";
+import { fetchIgdbGameById, igdbGameDetailsQueryKey } from "@/lib/igdbGameDetailsQuery";
 import { apiRequest, ApiError } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { getConsoleChip, getOwnershipStatusChip } from "@/lib/game-card-presenter";
@@ -180,9 +186,22 @@ const GameCard = ({
     onToggleHidden?.(game.id, !game.hidden);
   };
 
+  const handlePrefetchIgdbDetails = useCallback(() => {
+    if (typeof game.igdbId === "number" && isIgdbDiscoveryId(resolvedGame.id)) {
+      void queryClient
+        .prefetchQuery({
+          queryKey: igdbGameDetailsQueryKey(game.igdbId),
+          queryFn: () => fetchIgdbGameById(game.igdbId!),
+          retry: 2,
+        })
+        .catch(() => undefined);
+    }
+  }, [game.igdbId, resolvedGame.id, queryClient]);
+
   return (
     <Card
       ref={cardRef}
+      onMouseEnter={handlePrefetchIgdbDetails}
       className={`group mx-auto flex h-full w-full flex-col overflow-hidden border border-border bg-card/95 text-card-foreground transition-all duration-300 hover:-translate-y-0.5 hover:border-border hover:shadow-lg ${isCarouselLayout ? "max-w-none rounded-[22px]" : "max-w-[245px] rounded-[18px]"} ${game.hidden ? "opacity-60 grayscale" : ""}`}
       data-testid={`card-game-${game.id}`}
     >

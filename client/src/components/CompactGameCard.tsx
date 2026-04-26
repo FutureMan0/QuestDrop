@@ -1,4 +1,4 @@
-import React, { memo, useState, useEffect, useMemo } from "react";
+import React, { memo, useState, useEffect, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Download,
@@ -18,7 +18,14 @@ import { type GameStatus } from "./StatusBadge";
 import { type Game } from "@shared/schema";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import GameDownloadDialog from "./GameDownloadDialog";
-import { mapGameToInsertGame, isDiscoveryId, getGameDetailsRouteId, cn } from "@/lib/utils";
+import {
+  mapGameToInsertGame,
+  isDiscoveryId,
+  getGameDetailsRouteId,
+  cn,
+  isIgdbDiscoveryId,
+} from "@/lib/utils";
+import { fetchIgdbGameById, igdbGameDetailsQueryKey } from "@/lib/igdbGameDetailsQuery";
 import { apiRequest, ApiError } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { getConsoleChip, getOwnershipStatusChip } from "@/lib/game-card-presenter";
@@ -166,9 +173,22 @@ const CompactGameCard = ({
     onToggleHidden?.(game.id, !game.hidden);
   };
 
+  const handlePrefetchIgdbDetails = useCallback(() => {
+    if (typeof game.igdbId === "number" && isIgdbDiscoveryId(resolvedGame.id)) {
+      void queryClient
+        .prefetchQuery({
+          queryKey: igdbGameDetailsQueryKey(game.igdbId),
+          queryFn: () => fetchIgdbGameById(game.igdbId!),
+          retry: 2,
+        })
+        .catch(() => undefined);
+    }
+  }, [game.igdbId, resolvedGame.id, queryClient]);
+
   return (
     <>
       <div
+        onMouseEnter={handlePrefetchIgdbDetails}
         className={cn(
           "group relative flex items-center transition-colors hover:bg-accent/50",
           game.hidden && "opacity-60 grayscale",

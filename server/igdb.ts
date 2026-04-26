@@ -142,6 +142,11 @@ class IGDBClient {
     return !!(clientId && clientSecret);
   }
 
+  /** Whether IGDB API credentials are available (env and/or `system_config`). */
+  isConfigured(): Promise<boolean> {
+    return this.ensureConfigured();
+  }
+
   // Request queueing properties
   private requestQueue: Promise<void> = Promise.resolve();
   private lastRequestTime: number = 0;
@@ -945,9 +950,13 @@ class IGDBClient {
 
     sourceGames.forEach((game) => {
       const developers =
-        game.involved_companies?.filter((entry) => entry.developer).map((entry) => entry.company.name) || [];
+        game.involved_companies
+          ?.filter((entry) => entry.developer)
+          .map((entry) => entry.company.name) || [];
       const publishers =
-        game.involved_companies?.filter((entry) => entry.publisher).map((entry) => entry.company.name) || [];
+        game.involved_companies
+          ?.filter((entry) => entry.publisher)
+          .map((entry) => entry.company.name) || [];
       const studioNames = developers.length > 0 ? developers : publishers;
 
       studioNames.forEach((studioName) => {

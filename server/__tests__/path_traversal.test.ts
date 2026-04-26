@@ -49,6 +49,7 @@ vi.mock("../storage.js", () => ({
 vi.mock("../igdb.js", () => ({
   igdbClient: {
     getPopularGames: vi.fn(),
+    isConfigured: vi.fn().mockResolvedValue(true),
   },
 }));
 

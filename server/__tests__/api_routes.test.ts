@@ -32,6 +32,8 @@ vi.mock("../igdb.js", () => ({
     searchGames: vi.fn(),
     formatGameData: vi.fn((game) => game),
     getPopularGames: vi.fn(),
+    isConfigured: vi.fn().mockResolvedValue(true),
+    getGameById: vi.fn(),
   },
 }));
 

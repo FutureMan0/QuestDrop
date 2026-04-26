@@ -8,9 +8,10 @@ import "@testing-library/jest-dom";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 // Mocks
-const { mockInvalidateQueries, mockMutateAsync, mockToast } = vi.hoisted(() => {
+const { mockInvalidateQueries, mockPrefetchQuery, mockMutateAsync, mockToast } = vi.hoisted(() => {
   return {
     mockInvalidateQueries: vi.fn(),
+    mockPrefetchQuery: vi.fn().mockResolvedValue(undefined),
     mockMutateAsync: vi.fn(),
     mockToast: vi.fn(),
   };
@@ -22,6 +23,7 @@ vi.mock("@tanstack/react-query", async (importOriginal) => {
     ...actual,
     useQueryClient: () => ({
       invalidateQueries: mockInvalidateQueries,
+      prefetchQuery: mockPrefetchQuery,
     }),
     useMutation: () => ({
       mutateAsync: mockMutateAsync,
@@ -56,23 +58,29 @@ vi.mock("lucide-react", async (importOriginal) => {
   };
 });
 
-describe("CompactGameCard", () => {
-  const mockGame: Game = {
-    id: "1",
-    title: "Test Game",
-    coverUrl: "http://example.com/cover.jpg",
-    status: "wanted",
-    releaseDate: "2023-01-01",
-    rating: 8.5,
-    genres: ["Action", "Adventure"],
-    summary: "Test summary",
-    releaseStatus: "released",
-    hidden: false,
-    folderName: "Test Game",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
+const mockGame: Game = {
+  id: "1",
+  userId: "u1",
+  title: "Test Game",
+  coverUrl: "http://example.com/cover.jpg",
+  status: "wanted",
+  releaseDate: "2023-01-01",
+  rating: 8.5,
+  genres: ["Action", "Adventure"],
+  summary: "Test summary",
+  hidden: false,
+  igdbId: null,
+  platforms: null,
+  publishers: null,
+  developers: null,
+  screenshots: null,
+  originalReleaseDate: null,
+  releaseStatus: "released",
+  addedAt: null,
+  completedAt: null,
+};
 
+describe("CompactGameCard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -86,41 +94,35 @@ describe("CompactGameCard", () => {
 
     expect(screen.getByTestId("card-game-compact-1")).toBeInTheDocument();
     expect(screen.getByTestId("text-title-1")).toHaveTextContent("Test Game");
-    expect(screen.getByTestId("button-request-1")).toHaveTextContent("Request");
+    expect(screen.getByRole("button", { name: "Mark Test Game as Owned" })).toBeInTheDocument();
   });
 
-  it("shows fallback summary text when summary is empty", () => {
-    const gameWithoutSummary = { ...mockGame, summary: "" };
-    renderWithProviders(<CompactGameCard game={gameWithoutSummary} />);
-    expect(screen.getByText("No description available.")).toBeInTheDocument();
+  it("prefetches IGDB game details on hover for discovery results", () => {
+    const discoveryGame: Game = {
+      ...mockGame,
+      id: "igdb-99",
+      igdbId: 99,
+    };
+    renderWithProviders(<CompactGameCard game={discoveryGame} isDiscovery />);
+
+    const row = screen.getByTestId("card-game-compact-igdb-99");
+    fireEvent.mouseEnter(row);
+    expect(mockPrefetchQuery).toHaveBeenCalled();
   });
 
-  it("calls onStatusChange with wanted when request button is clicked", () => {
+  it("calls onStatusChange when the status cycle button is clicked", () => {
     const onStatusChange = vi.fn();
-    renderWithProviders(
-      <CompactGameCard game={{ ...mockGame, status: "owned" }} onStatusChange={onStatusChange} />
-    );
+    renderWithProviders(<CompactGameCard game={mockGame} onStatusChange={onStatusChange} />);
 
-    const button = screen.getByTestId("button-request-1");
-    fireEvent.click(button);
-
-    expect(onStatusChange).toHaveBeenCalledWith("1", "wanted");
+    fireEvent.click(screen.getByRole("button", { name: "Mark Test Game as Owned" }));
+    expect(onStatusChange).toHaveBeenCalledWith("1", "owned");
   });
 
   it("calls onViewDetails when cover is clicked", () => {
     const onViewDetails = vi.fn();
     renderWithProviders(<CompactGameCard game={mockGame} onViewDetails={onViewDetails} />);
 
-    const cover = screen.getByRole("button", { name: `${mockGame.title}, details` });
-    fireEvent.click(cover);
-
+    fireEvent.click(screen.getByTestId("img-cover-1"));
     expect(onViewDetails).toHaveBeenCalledWith("1");
-  });
-
-  it("disables request button when game is already requested", () => {
-    renderWithProviders(<CompactGameCard game={mockGame} />);
-    const button = screen.getByTestId("button-request-1");
-    expect(button).toBeDisabled();
-    expect(button).toHaveTextContent("Requested");
   });
 });

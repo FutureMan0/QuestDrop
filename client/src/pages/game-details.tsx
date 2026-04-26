@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useLocation, useRoute } from "wouter";
+import { useLocation, useRoute, Link } from "wouter";
 import { type QueryClient, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { apiRequest, ApiError } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import GameDownloadDialog from "@/components/GameDownloadDialog";
 import { isDiscoveryId } from "@/lib/utils";
+import { fetchIgdbGameById, igdbGameDetailsQueryKey } from "@/lib/igdbGameDetailsQuery";
 
 function parseIgdbId(routeId: string): number | null {
   if (routeId.startsWith("igdb-")) {
@@ -98,19 +99,6 @@ function findCachedGameInLists(
   return null;
 }
 
-async function fetchIgdbGameOrNull(igdbId: number): Promise<Game | null> {
-  try {
-    const response = await apiRequest("GET", `/api/igdb/game/${igdbId}`);
-    return (await response.json()) as Game;
-  } catch (error) {
-    if (error instanceof ApiError && (error.status === 404 || error.status === 400)) {
-      return null;
-    }
-    // Network/IGDB down: fall back to whatever we can read from the cache
-    return null;
-  }
-}
-
 const ALLOWED_RETURN_PATHS = new Set(["/requests", "/library", "/discover", "/downloads", "/"]);
 
 function getSafeReturnPathFromSearch(search: string): string {
@@ -132,18 +120,47 @@ export default function GameDetailsPage() {
     typeof window !== "undefined" ? window.location.search : ""
   );
 
-  const { data: game, isLoading } = useQuery<Game | null>({
-    queryKey: ["/game-details", routeId],
+  const needsIgdbFetch = routeId.startsWith("igdb-") && igdbId !== null;
+
+  const {
+    data: baseGame,
+    isPending: isPendingBase,
+    isSuccess: isBaseSuccess,
+  } = useQuery<Game | null>({
+    queryKey: ["/game-details/base", routeId],
     enabled: !!routeId,
     queryFn: async () => {
       const localGame = await fetchLocalGame(routeId);
       if (localGame) return localGame;
-      const listCached = findCachedGameInLists(queryClient, routeId, igdbId);
-      if (listCached) return listCached;
-      if (!igdbId) return null;
-      return await fetchIgdbGameOrNull(igdbId);
+      return findCachedGameInLists(queryClient, routeId, igdbId);
     },
   });
+
+  const {
+    data: igdbGame,
+    isPending: isPendingIgdb,
+    isFetching: isFetchingIgdb,
+    isError: isIgdbError,
+    error: igdbError,
+    refetch: refetchIgdb,
+  } = useQuery({
+    queryKey:
+      igdbId != null ? igdbGameDetailsQueryKey(igdbId) : ["/api/igdb/game", "disabled" as const],
+    queryFn: () => fetchIgdbGameById(igdbId!),
+    enabled: igdbId != null && needsIgdbFetch && isBaseSuccess && baseGame == null,
+    retry: 2,
+    throwOnError: false,
+  });
+
+  const game = (baseGame ?? igdbGame) as Game | null | undefined;
+  const isLoadingIgdb =
+    igdbId != null &&
+    needsIgdbFetch &&
+    isBaseSuccess &&
+    baseGame == null &&
+    (isPendingIgdb || isFetchingIgdb) &&
+    igdbGame == null;
+  const isLoading = isPendingBase || isLoadingIgdb;
 
   const removeGameMutation = useMutation({
     mutationFn: async (gameId: string) => {
@@ -174,6 +191,104 @@ export default function GameDetailsPage() {
   }
 
   if (!game) {
+    const err = igdbError instanceof ApiError ? igdbError : null;
+    const igdbFailed = needsIgdbFetch && isBaseSuccess && baseGame == null && isIgdbError;
+
+    if (igdbFailed) {
+      const isNotFound = err && (err.status === 404 || err.status === 400);
+      const isNotConfigured = err?.status === 503;
+      const isRateLimited = err?.status === 429;
+
+      if (isNotFound) {
+        return (
+          <div className="h-full overflow-auto p-6 space-y-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate(returnPath)}
+              className="gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+            <Card>
+              <CardContent className="p-6">
+                <h2 className="text-xl font-semibold">Game not found</h2>
+                <p className="mt-2 text-muted-foreground">
+                  This game is not in IGDB or the ID is invalid.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        );
+      }
+
+      if (isNotConfigured) {
+        return (
+          <div className="h-full overflow-auto p-6 space-y-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate(returnPath)}
+              className="gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+            <Card>
+              <CardContent className="space-y-3 p-6">
+                <h2 className="text-xl font-semibold">IGDB not configured</h2>
+                <p className="text-muted-foreground">
+                  Add an IGDB client ID and secret in settings to load game details.
+                </p>
+                <Button asChild>
+                  <Link href="/settings">Open settings</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        );
+      }
+
+      return (
+        <div className="h-full overflow-auto p-6 space-y-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate(returnPath)}
+            className="gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </Button>
+          <Card>
+            <CardContent className="space-y-3 p-6">
+              <h2 className="text-xl font-semibold">Could not load from IGDB</h2>
+              <p className="text-muted-foreground">
+                {isRateLimited
+                  ? "Too many IGDB requests. Wait a moment and try again."
+                  : err
+                    ? String(err.message)
+                    : "The server or network may be temporarily unavailable."}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={() => {
+                    void refetchIgdb();
+                  }}
+                >
+                  Retry
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link href="/settings">IGDB settings</Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
+
     return (
       <div className="h-full overflow-auto p-6 space-y-4">
         <Button variant="outline" size="sm" onClick={() => navigate(returnPath)} className="gap-2">

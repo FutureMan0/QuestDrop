@@ -1418,6 +1418,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ error: "Invalid game ID" });
         }
 
+        if (!(await igdbClient.isConfigured())) {
+          return res.status(503).json({ error: "IGDB not configured" });
+        }
+
         const igdbGame = await igdbClient.getGameById(igdbId);
         if (!igdbGame) {
           return res.status(404).json({ error: "Game not found" });
