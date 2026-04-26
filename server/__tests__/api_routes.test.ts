@@ -11,6 +11,7 @@ vi.mock("../storage.js", () => ({
   storage: {
     getUserGames: vi.fn(),
     searchUserGames: vi.fn(),
+    getGame: vi.fn(),
     addGame: vi.fn(),
     removeGame: vi.fn(),
     getUser: vi.fn(),
@@ -133,6 +134,41 @@ describe("API Routes", () => {
       expect(response.status).toBe(200);
       expect(response.body).toEqual(mockGames);
       expect(storage.searchUserGames).toHaveBeenCalledWith("user-1", "Test", false);
+    });
+  });
+
+  describe("GET /api/games/:id", () => {
+    it("should return a game for the authenticated user", async () => {
+      const gameId = "123e4567-e89b-12d3-a456-426614174000";
+      const game = { id: gameId, title: "Resident Evil", userId: "user-1" };
+      vi.mocked(storage.getGame).mockResolvedValue(game as unknown as Game);
+
+      const response = await request(app).get(`/api/games/${gameId}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual(game);
+      expect(storage.getGame).toHaveBeenCalledWith(gameId);
+    });
+
+    it("should return 404 for an unknown game id", async () => {
+      const gameId = "123e4567-e89b-12d3-a456-426614174099";
+      vi.mocked(storage.getGame).mockResolvedValue(undefined);
+
+      const response = await request(app).get(`/api/games/${gameId}`);
+
+      expect(response.status).toBe(404);
+      expect(response.body).toEqual({ error: "Game not found" });
+    });
+
+    it("should return 404 when game belongs to another user", async () => {
+      const gameId = "123e4567-e89b-12d3-a456-426614174077";
+      const game = { id: gameId, title: "Another Library Game", userId: "user-2" };
+      vi.mocked(storage.getGame).mockResolvedValue(game as unknown as Game);
+
+      const response = await request(app).get(`/api/games/${gameId}`);
+
+      expect(response.status).toBe(404);
+      expect(response.body).toEqual({ error: "Game not found" });
     });
   });
 

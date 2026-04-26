@@ -9,7 +9,7 @@ import { type Game } from "@shared/schema";
 import { useState, memo, useRef, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import GameDownloadDialog from "./GameDownloadDialog";
-import { mapGameToInsertGame, isDiscoveryId } from "@/lib/utils";
+import { mapGameToInsertGame, isDiscoveryId, getGameDetailsRouteId } from "@/lib/utils";
 import { apiRequest, ApiError } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { getConsoleChip, getOwnershipStatusChip } from "@/lib/game-card-presenter";
@@ -141,10 +141,7 @@ const GameCard = ({
       return;
     }
 
-    const detailsId =
-      isDiscoveryId(resolvedGame.id) && resolvedGame.igdbId
-        ? `igdb-${resolvedGame.igdbId}`
-        : resolvedGame.id;
+    const detailsId = getGameDetailsRouteId(resolvedGame);
     navigate(`/games/${detailsId}`);
     onViewDetails?.(game.id);
   };

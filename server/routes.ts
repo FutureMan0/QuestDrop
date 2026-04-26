@@ -914,6 +914,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   );
 
+  // Get a single game by internal UUID (user-scoped)
+  app.get(
+    "/api/games/:id([0-9a-fA-F-]{36})",
+    authenticateToken,
+    sanitizeGameId,
+    validateRequest,
+    async (req: Request, res: Response) => {
+      try {
+        const { id } = req.params;
+        const userId = req.user!.id;
+        const game = await storage.getGame(id);
+
+        if (!game || game.userId !== userId) {
+          return res.status(404).json({ error: "Game not found" });
+        }
+
+        res.json(game);
+      } catch (error) {
+        routesLogger.error({ error }, "error fetching game");
+        res.status(500).json({ error: "Failed to fetch game" });
+      }
+    }
+  );
+
   // Add game to collection
   app.post(
     "/api/games",

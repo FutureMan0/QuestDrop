@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useLocation, useRoute } from "wouter";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { type QueryClient, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,6 +9,7 @@ import { type Game } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import GameDownloadDialog from "@/components/GameDownloadDialog";
+import { isDiscoveryId } from "@/lib/utils";
 
 function parseIgdbId(routeId: string): number | null {
   if (routeId.startsWith("igdb-")) {
@@ -28,6 +29,25 @@ async function fetchLocalGame(id: string): Promise<Game | null> {
   return response.json();
 }
 
+function findCachedSearchGame(queryClient: QueryClient, routeId: string): Game | null {
+  const querySources: ReadonlyArray<ReadonlyArray<unknown>> = [
+    ["/api/metadata/screenscraper/search", "global-search-screenscraper"],
+    ["/api/igdb/search", "global-search-igdb"],
+    ["/api/games/discover"],
+  ];
+
+  for (const queryKey of querySources) {
+    const cachedEntries = queryClient.getQueriesData<Game[]>({ queryKey });
+    for (const [, data] of cachedEntries) {
+      if (!Array.isArray(data)) continue;
+      const matched = data.find((game) => String(game.id) === routeId);
+      if (matched) return matched;
+    }
+  }
+
+  return null;
+}
+
 export default function GameDetailsPage() {
   const [, navigate] = useLocation();
   const [match, params] = useRoute<{ id: string }>("/games/:id");
@@ -44,6 +64,8 @@ export default function GameDetailsPage() {
     queryFn: async () => {
       const localGame = await fetchLocalGame(routeId);
       if (localGame) return localGame;
+      const cachedSearchGame = findCachedSearchGame(queryClient, routeId);
+      if (cachedSearchGame) return cachedSearchGame;
       if (!igdbId) return null;
       const response = await apiRequest("GET", `/api/igdb/game/${igdbId}`);
       return response.json();
@@ -87,9 +109,7 @@ export default function GameDetailsPage() {
         <Card>
           <CardContent className="p-6">
             <h2 className="text-xl font-semibold">Game not found</h2>
-            <p className="mt-2 text-muted-foreground">
-              The requested game could not be loaded.
-            </p>
+            <p className="mt-2 text-muted-foreground">The requested game could not be loaded.</p>
           </CardContent>
         </Card>
       </div>
@@ -126,13 +146,15 @@ export default function GameDetailsPage() {
                   {game.rating ? `${game.rating}/10` : "N/A"}
                 </span>
               </div>
-              {game.summary && <p className="text-muted-foreground leading-relaxed">{game.summary}</p>}
+              {game.summary && (
+                <p className="text-muted-foreground leading-relaxed">{game.summary}</p>
+              )}
               <div className="flex flex-wrap gap-2">
                 <Button onClick={() => setDownloadOpen(true)} className="gap-2">
                   <Download className="h-4 w-4" />
                   Request
                 </Button>
-                {!String(game.id).startsWith("igdb-") && (
+                {!isDiscoveryId(game.id) && (
                   <Button
                     variant="outline"
                     className="gap-2"
@@ -190,7 +212,9 @@ export default function GameDetailsPage() {
 
           <Card>
             <CardContent className="p-5">
-              <h3 className="mb-3 text-sm font-semibold uppercase text-muted-foreground">Screenshots</h3>
+              <h3 className="mb-3 text-sm font-semibold uppercase text-muted-foreground">
+                Screenshots
+              </h3>
               <div className="grid grid-cols-2 gap-3">
                 {game.screenshots?.length ? (
                   game.screenshots.slice(0, 6).map((screenshot, idx) => (

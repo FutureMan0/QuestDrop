@@ -18,7 +18,7 @@ import { type GameStatus } from "./StatusBadge";
 import { type Game } from "@shared/schema";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import GameDownloadDialog from "./GameDownloadDialog";
-import { mapGameToInsertGame, isDiscoveryId, cn } from "@/lib/utils";
+import { mapGameToInsertGame, isDiscoveryId, getGameDetailsRouteId, cn } from "@/lib/utils";
 import { apiRequest, ApiError } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { getConsoleChip, getOwnershipStatusChip } from "@/lib/game-card-presenter";
@@ -128,10 +128,7 @@ const CompactGameCard = ({
   };
 
   const handleDetailsClick = () => {
-    const detailsId =
-      isDiscoveryId(resolvedGame.id) && resolvedGame.igdbId
-        ? `igdb-${resolvedGame.igdbId}`
-        : resolvedGame.id;
+    const detailsId = getGameDetailsRouteId(resolvedGame);
     navigate(`/games/${detailsId}`);
     onViewDetails?.(game.id);
   };

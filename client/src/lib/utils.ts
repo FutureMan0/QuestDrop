@@ -34,11 +34,27 @@ export function asZodType<T>(schema: unknown): z.ZodType<T> {
 
 /**
  * Checks if a game ID is a temporary ID from IGDB discovery results.
- * Temporary IDs are prefixed with 'igdb-' followed by numeric digits.
+ * Temporary IDs are prefixed with known provider namespaces.
  */
-export function isDiscoveryId(id: string | number | null | undefined): boolean {
+export function isIgdbDiscoveryId(id: string | number | null | undefined): boolean {
   if (typeof id !== "string") return false;
   return id.startsWith("igdb-");
+}
+
+export function isScreenScraperDiscoveryId(id: string | number | null | undefined): boolean {
+  if (typeof id !== "string") return false;
+  return id.startsWith("screenscraper-");
+}
+
+export function isDiscoveryId(id: string | number | null | undefined): boolean {
+  return isIgdbDiscoveryId(id) || isScreenScraperDiscoveryId(id);
+}
+
+export function getGameDetailsRouteId(game: Pick<Game, "id" | "igdbId">): string {
+  if (isIgdbDiscoveryId(game.id) && typeof game.igdbId === "number") {
+    return `igdb-${game.igdbId}`;
+  }
+  return String(game.id);
 }
 
 /**
